@@ -2,9 +2,9 @@ package comp6521project;
 
 /**
  * 
- * @author Natheepan
+ * @author Xiyue Li
  *
  */
-public class Reader {
+public class Writer {
 
 }
