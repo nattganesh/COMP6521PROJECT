@@ -24,11 +24,15 @@ public class Tuple {
         this.orderDate = orderDate;
     }
 
-    public Tuple(String input){
-        // TODO convert input string into the data structure
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+    public Tuple(String input) {
+        this.clientId = Integer.parseInt(input.substring(0,8));// INT(8)
+        this.name = input.substring(8,38);// CHAR(30)
+        this.gender = Integer.parseInt(input.substring(38,39));// INT(1)
+        this.ssn = Integer.parseInt(input.substring(39,48));// INT(9)
+        this.itemOrdered = input.substring(48,93);// CHAR(45)
+        this.quantityOrdered = Integer.parseInt(input.substring(93,100));// INT(7)
         try {
-            Date date = format.parse(input);
+            this.orderDate = new SimpleDateFormat("yyyy-MM-dd").parse(input.substring(100,110));// CHAR(10)
         } catch (ParseException e) {
             e.printStackTrace();
         }
