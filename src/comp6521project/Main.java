@@ -43,7 +43,7 @@ public class Main {
 			writer.close();
 			numBlocks++;
 			
-			System.out.println("\nBlock ID = " + numBlocks + "\n");
+//			System.out.println("\nBlock ID = " + numBlocks + "\n");
 		}
 	}
 	

@@ -38,7 +38,7 @@ public class Reader{
 	            }
 				block.addTuple(new Tuple(nextLine));
 				i++;
-				System.out.println(nextLine);
+//				System.out.println(nextLine);
 			} 
 			catch (IOException e) 
 			{
