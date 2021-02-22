@@ -13,6 +13,7 @@ public class Reader{
 	
 	public BufferedReader reader;
 	public Block currentBlock;
+	public boolean finishedReading = false;
 	
 	public Reader(String fileName) {
 		try{
@@ -32,13 +33,16 @@ public class Reader{
 				String nextLine = reader.readLine();
 				if (nextLine == null || nextLine.trim().equals("")) 
 				{
+					finishedReading = true;
 	                break;
 	            }
 				block.addTuple(new Tuple(nextLine));
 				i++;
+				System.out.println(nextLine);
 			} 
 			catch (IOException e) 
 			{
+				finishedReading = true;
 				e.printStackTrace();
 			}
 		}
