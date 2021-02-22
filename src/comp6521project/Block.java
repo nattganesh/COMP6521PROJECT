@@ -1,7 +1,7 @@
 package comp6521project;
 
 public class Block {
-    static final int recordsPerBlock = 9;
+    public static final int recordsPerBlock = 9;
     Tuple[] records;
 
     public Block(){
@@ -17,6 +17,23 @@ public class Block {
             }
         }
     }
+    
+    public Tuple getTuple(int index) 
+    {
+    	if (index > -1 && index < recordsPerBlock)
+    	{
+    		return records[index];
+    	}
+    	return null;
+    }
+    
+    public void setTuple(int index, Tuple tuple) 
+    {
+    	if (index > -1 && index < recordsPerBlock)
+    	{
+    		records[index] = tuple;
+    	}
+    }
 
     @Override
     public String toString(){
@@ -24,6 +41,7 @@ public class Block {
         for (int i=0;i<recordsPerBlock;i++){
             if (records[i]!=null){
                 result+=records[i].toString();
+                result+="\n";
             }
         }
         return result;
