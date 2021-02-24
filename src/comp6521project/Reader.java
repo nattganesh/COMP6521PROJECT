@@ -31,7 +31,7 @@ public class Reader{
 			try 
 			{
 				String nextLine = reader.readLine();
-				if (nextLine == null || nextLine.trim().equals("")) 
+				if (nextLine == null || nextLine.trim().equals("") || nextLine == "\n" || nextLine == "\r")
 				{
 					finishedReading = true;
 	                break;

@@ -1,28 +1,31 @@
 package comp6521project;
 
+import java.util.ArrayList;
+
 public class Block {
     public static final int recordsPerBlock = 9;
-    Tuple[] records;
+    ArrayList<Tuple> records;
 
     public Block(){
-        records = new Tuple[recordsPerBlock];
+        records = new ArrayList<>();
     }
 
     public void addTuple(Tuple tuple) {
         for (int i=0;i<recordsPerBlock;i++) {
-            if (records[i] == null)
-            {
-                records[i] = tuple;
+                records.add(tuple);
                 return;
-            }
         }
+    }
+
+    public void removeTuple(int index) {
+        records.remove(index);
     }
     
     public Tuple getTuple(int index) 
     {
     	if (index > -1 && index < recordsPerBlock)
     	{
-    		return records[index];
+    		return records.get(index);
     	}
     	return null;
     }
@@ -31,19 +34,18 @@ public class Block {
     {
     	if (index > -1 && index < recordsPerBlock)
     	{
-    		records[index] = tuple;
+    		records.set(index, tuple);
     	}
     }
 
     @Override
     public String toString(){
         String result = "";
-        for (int i=0;i<recordsPerBlock;i++){
-            if (records[i]!=null){
-                result+=records[i].toString();
-                result+="\n";
-            }
+        for (int i=0;i<records.size();i++){
+            result+=records.get(i).toString() + "\n";
         }
         return result;
     }
+
+    public boolean isFull() { return records.size() >= recordsPerBlock; }
 }

@@ -22,6 +22,7 @@ public class Writer {
     public void write(Block block){
         try {
             writer.write(block.toString());
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
