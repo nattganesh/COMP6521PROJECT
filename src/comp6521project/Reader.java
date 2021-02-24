@@ -3,6 +3,7 @@ package comp6521project;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * 
@@ -12,8 +13,12 @@ import java.io.IOException;
 public class Reader{
 	
 	public BufferedReader reader;
-	public Block currentBlock;
+//	public ArrayList<Block> currentBlocks = new ArrayList<>();
+	public ArrayList<Tuple> currentTuples = new ArrayList<>();
 	public boolean finishedReading = false;
+	public Block currentBlock;
+	
+	static int totalNumberOfTuples = 0;
 	
 	public Reader(String fileName) {
 		try{
@@ -26,6 +31,7 @@ public class Reader{
 	public void readBlock() {
 		Block block = new Block();
 		int i = 0;
+		
 		while(i < Block.recordsPerBlock) 
 		{
 			try 
@@ -36,7 +42,10 @@ public class Reader{
 					finishedReading = true;
 	                break;
 	            }
-				block.addTuple(new Tuple(nextLine));
+				totalNumberOfTuples++;
+				Tuple temp = new Tuple(nextLine);
+				block.addTuple(temp);
+				currentTuples.add(temp);
 				i++;
 //				System.out.println(nextLine);
 			} 
@@ -47,5 +56,24 @@ public class Reader{
 			}
 		}
 		currentBlock = block;
+//		currentBlocks.add(block);
+	}
+	
+	public void readBlocks(int numBlocks) 
+	{
+		currentTuples = new ArrayList<>();
+		int countNumberOfBlocksRead = 0;
+		while(numBlocks > 0) 
+		{
+			countNumberOfBlocksRead++;
+			numBlocks--;
+			
+			readBlock();
+			
+			if(finishedReading)
+				break;
+		}
+		
+		System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
 	}
 }

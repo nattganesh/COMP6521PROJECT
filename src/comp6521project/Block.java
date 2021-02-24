@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class Block {
     public static final int recordsPerBlock = 9;
+    public static final int bytesPerBlock = 1024;
     ArrayList<Tuple> records;
 
     public Block(){

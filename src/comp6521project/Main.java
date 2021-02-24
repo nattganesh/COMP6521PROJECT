@@ -5,8 +5,14 @@ import java.util.Comparator;
 
 public class Main {
 
-//	public static String inputFileName = "Input_Example";
-	public static String inputFileName = "mergeCheck";
+	public static final int kiloByte = 1024;
+	public static final int megaByte = 1048576;
+	public static final int maxMemory = kiloByte * 555;
+//	public static final int maxMemory = 5 * megaByte; //5Mb
+//	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
+//	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
+	public static String inputFileName = "Input_Example";
+//	public static String inputFileName = "mergeCheck";
 //	public static String inputFileName = "sortCheck";
 	public static String fileExtension = ".txt";
     public static String inputPath = System.getProperty("user.dir")+"/textfiles/input/";
@@ -14,35 +20,76 @@ public class Main {
     
     
     
+    
 	public static void main(String[] args) {
-		System.out.println(Runtime.getRuntime().maxMemory());
+//		System.out.println(Runtime.getRuntime().maxMemory());
 		
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
+		
+		//Number of blocks we can process based of available memory
+		
+		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
+		
+		
+		
+		
 		int numBlocks = 0;
 
 		while(!r.finishedReading)
 		{
-			r.readBlock();
-
-			quickSortByClientID(r.currentBlock, 0, r.currentBlock.records.size() - 1);
-
+			r.readBlocks(maxNumberOfBlocksToProcess);
+			System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
+//			for(Tuple t: r.currentTuples) 
+//			{
+//				System.out.println(t.name);
+//			}
+			quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
+//			for(Tuple t: r.currentTuples) 
+//			{
+//				System.out.println(t.name);
+//			}
+			System.out.println("Chunk Sorted");
 			Writer writer = new Writer(outputPath + inputFileName + "_pass_0_" + numBlocks + fileExtension);
-			writer.write(r.currentBlock);
+			
+			int numRecordsInBlock = 0;
+			Block b = new Block();
+			ArrayList<Block> currentBlocks = new ArrayList<>();
+			for(Tuple t: r.currentTuples) 
+			{
+//				System.out.println(t);
+				if(numRecordsInBlock < Block.recordsPerBlock)
+				{
+					b.addTuple(t);
+					numRecordsInBlock++;
+					if(t == r.currentTuples.get(r.currentTuples.size() - 1)) 
+					{
+						currentBlocks.add(b);
+					}
+				}
+				else 
+				{
+					currentBlocks.add(b);
+					numRecordsInBlock = 0;
+					b = new Block();
+					b.addTuple(t);
+					numRecordsInBlock++;
+				}	
+//				System.out.println(numRecordsInBlock);
+			}
+			
+			writer.writeChunk(currentBlocks);
 			writer.close();
 			numBlocks++;
 			
 //			System.out.println("\nBlock ID = " + numBlocks + "\n");
 		}
+		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
 		merge(numBlocks);
-
+		System.out.println("Complete");
 	}
 	
-	public static void quickSortByClientID(Block toBeSorted, int low, int high) 
+	public static void quickSortByClientID(ArrayList<Tuple> toBeSorted, int low, int high) 
 	{
-		if(toBeSorted.getTuple(high) == null) 
-		{
-			return;
-		}
 		if (low < high) 
 		{
 			int partitionIndex = partition(toBeSorted, low, high);
@@ -50,29 +97,68 @@ public class Main {
 			quickSortByClientID(toBeSorted, partitionIndex+1, high);
 		}
 	}
-    
-	public static int partition(Block toBeSorted, int low, int high) {
-        Tuple pivot = toBeSorted.getTuple(high);
+	
+	public static int partition(ArrayList<Tuple> toBeSorted, int low, int high) {
+        Tuple pivot = toBeSorted.get(high);
         int i = (low-1);
 
         for (int j = low; j < high; j++) 
         {
-            if (toBeSorted.getTuple(j).clientId <= pivot.clientId) 
+            if (toBeSorted.get(j).clientId <= pivot.clientId) 
             {
                 i++;
 
-                Tuple swapTemp = toBeSorted.getTuple(i);
-                toBeSorted.setTuple(i, toBeSorted.getTuple(j));
-                toBeSorted.setTuple(j, swapTemp);
+                Tuple swapTemp = toBeSorted.get(i);
+                toBeSorted.set(i, toBeSorted.get(j));
+                toBeSorted.set(j, swapTemp);
             }
         }
 
-        Tuple swapTemp = toBeSorted.getTuple(i+1);
-        toBeSorted.setTuple(i+1, toBeSorted.getTuple(high));
-        toBeSorted.setTuple(high, swapTemp);
+        Tuple swapTemp = toBeSorted.get(i+1);
+        toBeSorted.set(i+1, toBeSorted.get(high));
+        toBeSorted.set(high, swapTemp);
 
         return i+1;
     }
+	
+//	public static void quickSortByClientID(Block toBeSorted, int low, int high) 
+//	{
+//		if(toBeSorted.getTuple(high) == null) 
+//		{
+//			return;
+//		}
+//		if (low < high) 
+//		{
+//			int partitionIndex = partition(toBeSorted, low, high);
+//			quickSortByClientID(toBeSorted, low, partitionIndex-1);
+//			quickSortByClientID(toBeSorted, partitionIndex+1, high);
+//		}
+//	}
+//    
+//	public static int partition(Block toBeSorted, int low, int high) {
+//        Tuple pivot = toBeSorted.getTuple(high);
+//        int i = (low-1);
+//
+//        for (int j = low; j < high; j++) 
+//        {
+//            if (toBeSorted.getTuple(j).clientId <= pivot.clientId) 
+//            {
+//                i++;
+//
+//                Tuple swapTemp = toBeSorted.getTuple(i);
+//                toBeSorted.setTuple(i, toBeSorted.getTuple(j));
+//                toBeSorted.setTuple(j, swapTemp);
+//            }
+//        }
+//
+//        Tuple swapTemp = toBeSorted.getTuple(i+1);
+//        toBeSorted.setTuple(i+1, toBeSorted.getTuple(high));
+//        toBeSorted.setTuple(high, swapTemp);
+//
+//        return i+1;
+//    }
+	
+	
 
     public static void merge(int numFilesToRead) {
 		final int blockSize = 1024;
@@ -149,6 +235,11 @@ public class Main {
 			maxBlocksPerFile *= memoryLimit;
 			System.out.println("======Pass " + i + " Finished======");
 		}
-
 	}
+    
+    
+    
+    
+    
+    
 }
