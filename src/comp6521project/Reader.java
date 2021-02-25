@@ -59,9 +59,14 @@ public class Reader{
 //		currentBlocks.add(block);
 	}
 	
-	public void readBlocks(int numBlocks) 
+	public int readBlocks(int numBlocks) 
 	{
-		currentTuples = new ArrayList<>();
+		return readBlocks(numBlocks, new ArrayList<Tuple>());
+	}
+	
+	public int readBlocks(int numBlocks, ArrayList<Tuple> tuples) 
+	{
+		this.currentTuples = tuples;
 		int countNumberOfBlocksRead = 0;
 		while(numBlocks > 0) 
 		{
@@ -74,6 +79,7 @@ public class Reader{
 				break;
 		}
 		
-		System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
+//		System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
+		return countNumberOfBlocksRead;
 	}
 }

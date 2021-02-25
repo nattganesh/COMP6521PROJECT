@@ -11,9 +11,15 @@ public class Main {
 //	public static final int maxMemory = 5 * megaByte; //5Mb
 //	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
 //	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
+	
+	
 	public static String inputFileName = "Input_Example";
 //	public static String inputFileName = "mergeCheck";
 //	public static String inputFileName = "sortCheck";
+	
+	public static String inputFileName2 = "sortCheck2";
+	
+	public static String outputFileName = "Output";
 	public static String fileExtension = ".txt";
     public static String inputPath = System.getProperty("user.dir")+"/textfiles/input/";
     public static String outputPath = System.getProperty("user.dir")+"/textfiles/output/";
@@ -29,27 +35,52 @@ public class Main {
 		//Number of blocks we can process based of available memory
 		
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
+		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
 		
+		int numBlocks = readAndSort(r, maxNumberOfBlocksToProcess, 0);
 		
-		
-		
-		int numBlocks = 0;
+//		//If we have to read second file to get T2
+//		if(inputFileName != inputFileName2) 
+//		{
+//			Reader r2 = new Reader(inputPath + inputFileName + fileExtension);
+//			numBlocks = readAndSort(r2, maxNumberOfBlocksToProcess, numBlocks);
+//		}
 
+		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
+//		merge(numBlocks);
+		System.out.println("Complete");
+	}
+	
+	public static int readAndSort(Reader r, int maxNumberOfBlocksToProcess, int numBlocks) 
+	{
 		while(!r.finishedReading)
 		{
-			r.readBlocks(maxNumberOfBlocksToProcess);
-			System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
+			int countNumberOfBlocksRead = r.readBlocks(maxNumberOfBlocksToProcess);
+//			System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
 //			for(Tuple t: r.currentTuples) 
 //			{
 //				System.out.println(t.name);
 //			}
+			
+			//If we have to read second file to get T2
+			if(inputFileName != inputFileName2 && countNumberOfBlocksRead < maxNumberOfBlocksToProcess) 
+			{
+				// If a second file exists, and memory still not full after reading file 1, lets read file 2.
+				Reader r2 = new Reader(inputPath + inputFileName2 + fileExtension);
+				countNumberOfBlocksRead += r2.readBlocks(maxNumberOfBlocksToProcess - countNumberOfBlocksRead, r.currentTuples);
+				inputFileName = inputFileName2; // To indicate we have acknowledge both files
+				r = r2;
+			}
+			
+			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
 			quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
 //			for(Tuple t: r.currentTuples) 
 //			{
 //				System.out.println(t.name);
 //			}
-			System.out.println("Chunk Sorted");
-			Writer writer = new Writer(outputPath + inputFileName + "_pass_0_" + numBlocks + fileExtension);
+//			System.out.println("Chunk Sorted");
+			
+			Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + numBlocks + fileExtension);
 			
 			int numRecordsInBlock = 0;
 			Block b = new Block();
@@ -82,10 +113,18 @@ public class Main {
 			numBlocks++;
 			
 //			System.out.println("\nBlock ID = " + numBlocks + "\n");
+			
+			
 		}
-		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
-		merge(numBlocks);
-		System.out.println("Complete");
+		
+		if(inputFileName != inputFileName2) 
+		{
+			// If a second file exists
+			r = new Reader(inputPath + inputFileName2 + fileExtension);
+			readAndSort(r, maxNumberOfBlocksToProcess, numBlocks);
+			inputFileName = inputFileName2; // To indicate we have acknowledge both files
+		}
+		return numBlocks;
 	}
 	
 	public static void quickSortByClientID(ArrayList<Tuple> toBeSorted, int low, int high) 
@@ -121,44 +160,6 @@ public class Main {
         return i+1;
     }
 	
-//	public static void quickSortByClientID(Block toBeSorted, int low, int high) 
-//	{
-//		if(toBeSorted.getTuple(high) == null) 
-//		{
-//			return;
-//		}
-//		if (low < high) 
-//		{
-//			int partitionIndex = partition(toBeSorted, low, high);
-//			quickSortByClientID(toBeSorted, low, partitionIndex-1);
-//			quickSortByClientID(toBeSorted, partitionIndex+1, high);
-//		}
-//	}
-//    
-//	public static int partition(Block toBeSorted, int low, int high) {
-//        Tuple pivot = toBeSorted.getTuple(high);
-//        int i = (low-1);
-//
-//        for (int j = low; j < high; j++) 
-//        {
-//            if (toBeSorted.getTuple(j).clientId <= pivot.clientId) 
-//            {
-//                i++;
-//
-//                Tuple swapTemp = toBeSorted.getTuple(i);
-//                toBeSorted.setTuple(i, toBeSorted.getTuple(j));
-//                toBeSorted.setTuple(j, swapTemp);
-//            }
-//        }
-//
-//        Tuple swapTemp = toBeSorted.getTuple(i+1);
-//        toBeSorted.setTuple(i+1, toBeSorted.getTuple(high));
-//        toBeSorted.setTuple(high, swapTemp);
-//
-//        return i+1;
-//    }
-	
-	
 
     public static void merge(int numFilesToRead) {
 		final int blockSize = 1024;
@@ -175,13 +176,13 @@ public class Main {
 			ArrayList<Block> buffer = new ArrayList<>();
 			Block output = new Block();
 
-			Writer writer = new Writer(outputPath + inputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
+			Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 			ArrayList<Reader> readers = new ArrayList<>();
 
 			while (readerIndex < numFilesToRead){
 				int k = 0;
 				while (readerIndex < numFilesToRead && k<memoryLimit){
-					Reader reader = new Reader(outputPath + inputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
+					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
 					readers.add(reader);
 					reader.readBlock();
 					readerIndex++;
@@ -199,7 +200,7 @@ public class Main {
 					if (output.isFull()) {
 						if (numBlocksWrite >= maxBlocksPerFile) {
 							writerIndex++;
-							writer = new Writer(outputPath + inputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
+							writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 							numBlocksWrite = 0;
 						}
 						writer.write(output);
@@ -225,7 +226,7 @@ public class Main {
 				if (!output.records.isEmpty()) {
 					if (numBlocksWrite >= maxBlocksPerFile) {
 						writerIndex++;
-						writer = new Writer(outputPath + inputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
+						writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 					}
 					writer.write(output);
 				}
