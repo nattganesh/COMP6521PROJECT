@@ -36,14 +36,14 @@ public class Main {
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
 		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
 		
-		int numBlocks = readAndSort(r, maxNumberOfBlocksToProcess, 0);
+		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0);
 		
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
-		merge(numBlocks);
+		merge(numFiles);
 		System.out.println("Complete");
 	}
 	
-	public static int readAndSort(Reader r, int maxNumberOfBlocksToProcess, int numBlocks) 
+	public static int readAndSort(Reader r, int maxNumberOfBlocksToProcess, int numFiles) 
 	{
 		while(!r.finishedReading)
 		{
@@ -64,7 +64,7 @@ public class Main {
 			
 //			System.out.println("Chunk Sorted");
 			
-			Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + numBlocks + fileExtension);
+			Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + numFiles + fileExtension);
 			
 			int numRecordsInBlock = 0;
 			Block b = new Block();
@@ -93,17 +93,17 @@ public class Main {
 			
 			writer.writeChunk(currentBlocks);
 			writer.close();
-			numBlocks++;
+			numFiles++;
 		}
 		
 		if(inputFileName != inputFileName2) 
 		{
 			// If a second file exists
 			r = new Reader(inputPath + inputFileName2 + fileExtension);
-			readAndSort(r, maxNumberOfBlocksToProcess, numBlocks);
+			readAndSort(r, maxNumberOfBlocksToProcess, numFiles);
 			inputFileName = inputFileName2; // To indicate we have acknowledge both files
 		}
-		return numBlocks;
+		return numFiles;
 	}
 	
 	public static void quickSortByClientID(ArrayList<Tuple> toBeSorted, int low, int high) 
