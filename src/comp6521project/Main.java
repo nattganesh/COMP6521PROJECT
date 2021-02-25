@@ -32,22 +32,14 @@ public class Main {
 		
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
 		
-		//Number of blocks we can process based of available memory
-		
+		//Number of blocks we can process based of available memory		
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
 		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
 		
 		int numBlocks = readAndSort(r, maxNumberOfBlocksToProcess, 0);
 		
-//		//If we have to read second file to get T2
-//		if(inputFileName != inputFileName2) 
-//		{
-//			Reader r2 = new Reader(inputPath + inputFileName + fileExtension);
-//			numBlocks = readAndSort(r2, maxNumberOfBlocksToProcess, numBlocks);
-//		}
-
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
-//		merge(numBlocks);
+		merge(numBlocks);
 		System.out.println("Complete");
 	}
 	
@@ -56,13 +48,8 @@ public class Main {
 		while(!r.finishedReading)
 		{
 			int countNumberOfBlocksRead = r.readBlocks(maxNumberOfBlocksToProcess);
-//			System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
-//			for(Tuple t: r.currentTuples) 
-//			{
-//				System.out.println(t.name);
-//			}
-			
-			//If we have to read second file to get T2
+
+			//If we have to read second file to get T2, and memory is not full yet
 			if(inputFileName != inputFileName2 && countNumberOfBlocksRead < maxNumberOfBlocksToProcess) 
 			{
 				// If a second file exists, and memory still not full after reading file 1, lets read file 2.
@@ -74,10 +61,7 @@ public class Main {
 			
 			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
 			quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
-//			for(Tuple t: r.currentTuples) 
-//			{
-//				System.out.println(t.name);
-//			}
+			
 //			System.out.println("Chunk Sorted");
 			
 			Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + numBlocks + fileExtension);
@@ -87,7 +71,6 @@ public class Main {
 			ArrayList<Block> currentBlocks = new ArrayList<>();
 			for(Tuple t: r.currentTuples) 
 			{
-//				System.out.println(t);
 				if(numRecordsInBlock < Block.recordsPerBlock)
 				{
 					b.addTuple(t);
@@ -111,10 +94,6 @@ public class Main {
 			writer.writeChunk(currentBlocks);
 			writer.close();
 			numBlocks++;
-			
-//			System.out.println("\nBlock ID = " + numBlocks + "\n");
-			
-			
 		}
 		
 		if(inputFileName != inputFileName2) 

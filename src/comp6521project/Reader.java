@@ -13,7 +13,6 @@ import java.util.ArrayList;
 public class Reader{
 	
 	public BufferedReader reader;
-//	public ArrayList<Block> currentBlocks = new ArrayList<>();
 	public ArrayList<Tuple> currentTuples = new ArrayList<>();
 	public boolean finishedReading = false;
 	public Block currentBlock;
@@ -47,7 +46,6 @@ public class Reader{
 				block.addTuple(temp);
 				currentTuples.add(temp);
 				i++;
-//				System.out.println(nextLine);
 			} 
 			catch (IOException e) 
 			{
@@ -56,7 +54,6 @@ public class Reader{
 			}
 		}
 		currentBlock = block;
-//		currentBlocks.add(block);
 	}
 	
 	public int readBlocks(int numBlocks) 
@@ -78,8 +75,6 @@ public class Reader{
 			if(finishedReading)
 				break;
 		}
-		
-//		System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
 		return countNumberOfBlocksRead;
 	}
 }

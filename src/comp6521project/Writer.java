@@ -35,7 +35,6 @@ public class Writer {
         	for(Block b : blocks) 
         	{
         		output += b.toString();
-//        		output += "\n";
         	}
             writer.write(output);
             writer.flush();
