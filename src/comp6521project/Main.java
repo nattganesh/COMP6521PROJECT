@@ -1,7 +1,9 @@
 package comp6521project;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.stream.Collector;
 
 public class Main {
 
@@ -13,12 +15,14 @@ public class Main {
 //	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 	
-	public static String inputFileName = "Input_Example";
+//	public static String inputFileName = "Input_Example";
+	public static String inputFileName = "Input_300000_records";
 //	public static String inputFileName = "mergeCheck";
 //	public static String inputFileName = "sortCheck";
 	
-	public static String inputFileName2 = "sortCheck2";
-	
+//	public static String inputFileName2 = "sortCheck2";
+	public static String inputFileName2 = "Input_100000_records";
+
 	public static String outputFileName = "Output";
 	public static String fileExtension = ".txt";
     public static String inputPath = System.getProperty("user.dir")+"/textfiles/input/";
@@ -39,7 +43,7 @@ public class Main {
 		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0);
 		
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
-		merge(numFiles);
+		merge(numFiles, maxNumberOfBlocksToProcess);
 		System.out.println("Complete");
 	}
 	
@@ -140,70 +144,68 @@ public class Main {
     }
 	
 
-    public static void merge(int numFilesToRead) {
-		final int blockSize = 1024;
-		final int memoryLimit = 60;// 5M: 60, 10M:213
-		System.out.println(Runtime.getRuntime().freeMemory());
-		System.out.println(memoryLimit);
-		int maxBlocksPerFile = Math.min(memoryLimit, numFilesToRead);
+    public static void merge(int numFilesToRead, int numBlocksPerFile) {
+		int memoryLimit = Math.floorDiv(maxMemory, Block.bytesPerBlock); // in blocks
+		int maxBlocksPerFile = numBlocksPerFile * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 
 		for (int i = 0; i < numPasses; i++) {
 			int readerIndex = 0;
 			int writerIndex = 0;
-			int numBlocksWrite = 0;
-			ArrayList<Block> buffer = new ArrayList<>();
+			int numBlocksWrote = 0;
+			ArrayList<ArrayList<Tuple>> buffers = new ArrayList<>();
 			Block output = new Block();
 
 			Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 			ArrayList<Reader> readers = new ArrayList<>();
 
 			while (readerIndex < numFilesToRead){
+				int numBlocksToRead = Math.min(memoryLimit / numFilesToRead, numBlocksPerFile);
 				int k = 0;
-				while (readerIndex < numFilesToRead && k<memoryLimit){
+				while (readerIndex < numFilesToRead && k < numBlocksToRead){
 					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
 					readers.add(reader);
-					reader.readBlock();
+					reader.readBlocks(numBlocksToRead);
 					readerIndex++;
-					buffer.add(reader.currentBlock);
+					buffers.add(reader.currentTuples);
 					k++;
 				}
 
-				while (!buffer.isEmpty()){
-					Block block = buffer.stream()
-							.min(Comparator.comparingInt(b->b.getTuple(0).clientId))
+				while (!buffers.isEmpty()){
+					ArrayList<Tuple> buffer = buffers.stream()
+							.min(Comparator.comparingInt(b->b.get(0).clientId))
 							.get();
-					Tuple tuple = block.getTuple(0);
+					Tuple tuple = buffer.get(0);
 					output.addTuple(tuple);
 
 					if (output.isFull()) {
-						if (numBlocksWrite >= maxBlocksPerFile) {
+						if (numBlocksWrote >= maxBlocksPerFile) {
 							writerIndex++;
 							writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
-							numBlocksWrite = 0;
+							numBlocksWrote = 0;
 						}
 						writer.write(output);
-						numBlocksWrite++;
+						numBlocksWrote++;
 						output = new Block();
 					}
-					block.removeTuple(0);
+					buffer.remove(0);
 
-					if (block.records.isEmpty()){
-						int bufferIndex = buffer.indexOf(block);
-						Reader reader = readers.get(bufferIndex);
+					if (buffer.isEmpty()){
+						int buffersIndex = buffers.indexOf(buffer);
+						Reader reader = readers.get(buffersIndex);
 						reader.readBlock();
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
-							readers.remove(bufferIndex);
-							buffer.remove(bufferIndex);
+							readers.remove(buffersIndex);
+							buffers.remove(buffersIndex);
 							continue;
 						}
-						buffer.set(bufferIndex, reader.currentBlock);
+						buffers.set(buffersIndex, reader.currentTuples);
 					}
 
 				}
 
 				if (!output.records.isEmpty()) {
-					if (numBlocksWrite >= maxBlocksPerFile) {
+					if (numBlocksWrote >= maxBlocksPerFile) {
 						writerIndex++;
 						writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 					}
