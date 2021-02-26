@@ -15,13 +15,13 @@ public class Main {
 //	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 	
-//	public static String inputFileName = "Input_Example";
-	public static String inputFileName = "Input_300000_records";
+	public static String inputFileName = "Input_Example";
+//	public static String inputFileName = "Input_300000_records";
 //	public static String inputFileName = "mergeCheck";
 //	public static String inputFileName = "sortCheck";
 	
-//	public static String inputFileName2 = "sortCheck2";
-	public static String inputFileName2 = "Input_100000_records";
+	public static String inputFileName2 = "sortCheck2";
+//	public static String inputFileName2 = "Input_100000_records";
 
 	public static String outputFileName = "Output";
 	public static String fileExtension = ".txt";
@@ -39,11 +39,19 @@ public class Main {
 		//Number of blocks we can process based of available memory		
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
 		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
-		
+
+		long sortStart = System.nanoTime();
 		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0);
-		
+		long sortEnd = System.nanoTime();
+		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
+
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
+
+		long mergeStart = System.nanoTime();
 		merge(numFiles, maxNumberOfBlocksToProcess);
+		long mergeEnd = System.nanoTime();
+		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
+
 		System.out.println("Complete");
 	}
 	
@@ -145,6 +153,8 @@ public class Main {
 	
 
     public static void merge(int numFilesToRead, int numBlocksPerFile) {
+		System.out.println("Merge start");
+		int numIO = 0;
 		int memoryLimit = Math.floorDiv(maxMemory, Block.bytesPerBlock); // in blocks
 		int maxBlocksPerFile = numBlocksPerFile * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
@@ -166,6 +176,7 @@ public class Main {
 					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
 					readers.add(reader);
 					reader.readBlocks(numBlocksToRead);
+					numIO++;
 					readerIndex++;
 					buffers.add(reader.currentTuples);
 					k++;
@@ -185,6 +196,7 @@ public class Main {
 							numBlocksWrote = 0;
 						}
 						writer.write(output);
+						numIO++;
 						numBlocksWrote++;
 						output = new Block();
 					}
@@ -193,7 +205,8 @@ public class Main {
 					if (buffer.isEmpty()){
 						int buffersIndex = buffers.indexOf(buffer);
 						Reader reader = readers.get(buffersIndex);
-						reader.readBlock();
+						reader.readBlocks(numBlocksToRead);
+						numIO++;
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
 							readers.remove(buffersIndex);
 							buffers.remove(buffersIndex);
@@ -210,13 +223,15 @@ public class Main {
 						writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 					}
 					writer.write(output);
+					numIO++;
 				}
 			}
 
 			numFilesToRead = writerIndex + 1;
 			maxBlocksPerFile *= memoryLimit;
-			System.out.println("======Pass " + i + " Finished======");
+			System.out.println("Pass " + i + " Finished");
 		}
+		System.out.println("Disk I/O at merge phase: " + numIO);
 	}
     
     
