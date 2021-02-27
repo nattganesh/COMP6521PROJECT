@@ -40,21 +40,21 @@ public class Main {
 	public static void main(String[] args) {
 //		System.out.println(Runtime.getRuntime().maxMemory());
 
-		Reader r = new Reader(inputPath + inputFileName + fileExtension);
-
-		//Number of blocks we can process based of available memory
+//		Reader r = new Reader(inputPath + inputFileName + fileExtension);
+//
+//		//Number of blocks we can process based of available memory
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
-		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
-
-		long sortStart = System.nanoTime();
-		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0, 0);
-		long sortEnd = System.nanoTime();
-		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
-
-		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
+//		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
+//
+//		long sortStart = System.nanoTime();
+//		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0, 0);
+//		long sortEnd = System.nanoTime();
+//		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
+//
+//		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
-		String mergedFile = merge(numFiles, maxNumberOfBlocksToProcess);
+		String mergedFile = merge(402, maxNumberOfBlocksToProcess);
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 
@@ -170,7 +170,16 @@ public class Main {
     public static String merge(int numFilesToRead, int numBlocksPerFile) {
 		System.out.println("Merge start");
 		int numIO = 0;
-		int memoryLimit = Math.floorDiv(maxMemory, Block.bytesPerBlock); // in blocks
+		int memoryLimit;
+		if (maxMemory <= 5*megaByte){
+			memoryLimit = 50;
+		}
+		else if (memoryLimit <= 10*megaByte) {
+			memoryLimit = 213;
+		}
+		else if (memoryLimit > 20*megaByte) {
+			memoryLimit = 500;
+		}
 		int maxBlocksPerFile = numBlocksPerFile * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 		int writerIndex = 0;
@@ -178,31 +187,31 @@ public class Main {
 		for (int i = 0; i < numPasses; i++) {
 			int readerIndex = 0;
 			int numBlocksWrote = 0;
-			ArrayList<ArrayList<Tuple>> buffers = new ArrayList<>();
+			ArrayList<Block> buffer = new ArrayList<>();
 			Block output = new Block();
 
 			Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 			ArrayList<Reader> readers = new ArrayList<>();
 
 			while (readerIndex < numFilesToRead){
-				int numBlocksToRead = Math.min(memoryLimit / numFilesToRead, numBlocksPerFile);
+				int numBlocksToRead = Math.min(memoryLimit, numBlocksPerFile);
 				int k = 0;
 				while (readerIndex < numFilesToRead && k < numBlocksToRead){
 					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
 					readers.add(reader);
-					reader.readBlocks(numBlocksToRead);
+					reader.readBlock();
 					numIO++;
 					readerIndex++;
-					buffers.add(reader.currentTuples);
+					buffer.add(reader.currentBlock);
 					k++;
 				}
-				System.out.println("Read " + (k-1) + " Blocks");
+				System.out.println("Read " + k + " Blocks");
 
-				while (!buffers.isEmpty()){
-					ArrayList<Tuple> buffer = buffers.stream()
-							.min(Comparator.comparingInt(b->b.get(0).clientId))
+				while (!buffer.isEmpty()){
+					Block block = buffer.stream()
+							.min(Comparator.comparingInt(b->b.getTuple(0).clientId))
 							.get();
-					Tuple tuple = buffer.get(0);
+					Tuple tuple = block.getTuple(0);
 					output.addTuple(tuple);
 
 					if (output.isFull()) {
@@ -211,24 +220,28 @@ public class Main {
 							writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 							numBlocksWrote = 0;
 						}
+						System.out.println("Wrote " + numBlocksWrote + " Blocks");
 						writer.write(output);
 						numIO++;
 						numBlocksWrote++;
 						output = new Block();
 					}
-					buffer.remove(0);
-
-					if (buffer.isEmpty()){
-						int buffersIndex = buffers.indexOf(buffer);
-						Reader reader = readers.get(buffersIndex);
-						reader.readBlocks(numBlocksToRead);
+					block.records.remove(0);
+					System.gc();
+					
+					if (block.records.isEmpty()){
+						int blockIndex = buffer.indexOf(block);
+						Reader reader = readers.get(blockIndex);
+						reader.readBlock();
+						k++;
+						System.out.println("Read " + k + " Blocks");
 						numIO++;
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
-							readers.remove(buffersIndex);
-							buffers.remove(buffersIndex);
+							readers.remove(blockIndex);
+							buffer.remove(blockIndex);
 							continue;
 						}
-						buffers.set(buffersIndex, reader.currentTuples);
+						buffer.set(blockIndex, reader.currentBlock);
 					}
 
 				}
