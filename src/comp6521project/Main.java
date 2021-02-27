@@ -13,12 +13,20 @@ public class Main {
 //	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 	
-	public static String inputFileName = "Input_Example";
+//	public static String inputFileName = "Input_Example";
+	public static String inputFileName = "HalfMillionData";
+//	public static String inputFileName = "HalfMillionData2";
+//	public static String inputFileName = "OneMillionData";
+//	public static String inputFileName = "OneMillionData2";
 //	public static String inputFileName = "Input_300000_records";
 //	public static String inputFileName = "mergeCheck";
 //	public static String inputFileName = "sortCheck";
 	
-	public static String inputFileName2 = "sortCheck2";
+//	public static String inputFileName2 = "sortCheck2";
+	public static String inputFileName2 = "HalfMillionData";
+//	public static String inputFileName2 = "HalfMillionData2";
+//	public static String inputFileName2 = "OneMillionData";
+//	public static String inputFileName2 = "OneMillionData2";
 //	public static String inputFileName2 = "Input_100000_records";
 
 	public static String outputFileName = "Output";
