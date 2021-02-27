@@ -1,9 +1,7 @@
 package comp6521project;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
-import java.util.stream.Collector;
 
 public class Main {
 
@@ -41,7 +39,7 @@ public class Main {
 		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
 
 		long sortStart = System.nanoTime();
-		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0);
+		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0, 0);
 		long sortEnd = System.nanoTime();
 		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
 
@@ -55,10 +53,11 @@ public class Main {
 		System.out.println("Complete");
 	}
 	
-	public static int readAndSort(Reader r, int maxNumberOfBlocksToProcess, int numFiles) 
+	public static int readAndSort(Reader r, int maxNumberOfBlocksToProcess, int numFiles, int sortIO) 
 	{
 		while(!r.finishedReading)
 		{
+			sortIO++; // reading file
 			int countNumberOfBlocksRead = r.readBlocks(maxNumberOfBlocksToProcess);
 
 			//If we have to read second file to get T2, and memory is not full yet
@@ -66,6 +65,7 @@ public class Main {
 			{
 				// If a second file exists, and memory still not full after reading file 1, lets read file 2.
 				Reader r2 = new Reader(inputPath + inputFileName2 + fileExtension);
+				sortIO++; // reading file
 				countNumberOfBlocksRead += r2.readBlocks(maxNumberOfBlocksToProcess - countNumberOfBlocksRead, r.currentTuples);
 				inputFileName = inputFileName2; // To indicate we have acknowledge both files
 				r = r2;
@@ -104,6 +104,7 @@ public class Main {
 			}
 			
 			writer.writeChunk(currentBlocks);
+			sortIO++; // writing to file
 			writer.close();
 			numFiles++;
 		}
@@ -112,8 +113,12 @@ public class Main {
 		{
 			// If a second file exists
 			r = new Reader(inputPath + inputFileName2 + fileExtension);
-			readAndSort(r, maxNumberOfBlocksToProcess, numFiles);
+			readAndSort(r, maxNumberOfBlocksToProcess, numFiles, sortIO);
 			inputFileName = inputFileName2; // To indicate we have acknowledge both files
+		}
+		else 
+		{
+			System.out.println("Disk I/O at sort phase: " + sortIO);
 		}
 		return numFiles;
 	}
