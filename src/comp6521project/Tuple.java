@@ -13,6 +13,8 @@ public class Tuple {
      int quantityOrdered;
      Date orderDate;
 
+     public Tuple() {}
+
     public Tuple(int clientId, String name, int gender, int ssn,
                  String itemOrdered, int quantityOrdered, Date orderDate) {
         this.clientId = clientId;
