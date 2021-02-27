@@ -40,18 +40,18 @@ public class Main {
 	public static void main(String[] args) {
 //		System.out.println(Runtime.getRuntime().maxMemory());
 
-//		Reader r = new Reader(inputPath + inputFileName + fileExtension);
-//
-//		//Number of blocks we can process based of available memory
+		Reader r = new Reader(inputPath + inputFileName + fileExtension);
+
+		//Number of blocks we can process based of available memory
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
-//		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
-//
-//		long sortStart = System.nanoTime();
-//		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0, 0);
-//		long sortEnd = System.nanoTime();
-//		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
-//
-//		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
+		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
+
+		long sortStart = System.nanoTime();
+		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0, 0);
+		long sortEnd = System.nanoTime();
+		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
+
+		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
 		String mergedFile = merge(402, maxNumberOfBlocksToProcess);
