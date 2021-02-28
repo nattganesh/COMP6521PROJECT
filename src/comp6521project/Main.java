@@ -115,7 +115,6 @@ public class Main {
 			
 			writer.writeChunk(currentBlocks);
 			sortIO++; // writing to file
-			writer.close();
 			numFiles++;
 		}
 		
@@ -170,16 +169,7 @@ public class Main {
     public static String merge(int numFilesToRead, int numBlocksPerFile) {
 		System.out.println("Merge start");
 		int numIO = 0;
-		int memoryLimit;
-		if (maxMemory <= 5*megaByte){
-			memoryLimit = 50;
-		}
-		else if (memoryLimit <= 10*megaByte) {
-			memoryLimit = 213;
-		}
-		else if (memoryLimit > 20*megaByte) {
-			memoryLimit = 500;
-		}
+		int memoryLimit = (int)(numBlocksPerFile/4.5);
 		int maxBlocksPerFile = numBlocksPerFile * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 		int writerIndex = 0;
@@ -200,12 +190,12 @@ public class Main {
 					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
 					readers.add(reader);
 					reader.readBlock();
+					reader.resetCurrentTuples();
 					numIO++;
 					readerIndex++;
 					buffer.add(reader.currentBlock);
 					k++;
 				}
-				System.out.println("Read " + k + " Blocks");
 
 				while (!buffer.isEmpty()){
 					Block block = buffer.stream()
@@ -220,7 +210,6 @@ public class Main {
 							writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 							numBlocksWrote = 0;
 						}
-						System.out.println("Wrote " + numBlocksWrote + " Blocks");
 						writer.write(output);
 						numIO++;
 						numBlocksWrote++;
@@ -233,8 +222,8 @@ public class Main {
 						int blockIndex = buffer.indexOf(block);
 						Reader reader = readers.get(blockIndex);
 						reader.readBlock();
+						reader.resetCurrentTuples();
 						k++;
-						System.out.println("Read " + k + " Blocks");
 						numIO++;
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
 							readers.remove(blockIndex);
@@ -243,8 +232,8 @@ public class Main {
 						}
 						buffer.set(blockIndex, reader.currentBlock);
 					}
-
 				}
+				System.out.println("Processed " + numFilesToRead + " files");
 
 				if (!output.records.isEmpty()) {
 					if (numBlocksWrote >= maxBlocksPerFile) {
@@ -254,8 +243,9 @@ public class Main {
 					writer.write(output);
 					numIO++;
 				}
-			}
 
+			}
+			writerIndex = 0;
 			numFilesToRead = writerIndex + 1;
 			maxBlocksPerFile *= memoryLimit;
 			System.out.println("Pass " + i + " Finished");

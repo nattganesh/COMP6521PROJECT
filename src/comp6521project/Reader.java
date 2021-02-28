@@ -77,4 +77,6 @@ public class Reader{
 		}
 		return countNumberOfBlocksRead;
 	}
+
+	public void resetCurrentTuples() { currentTuples = new ArrayList<>(); }
 }

@@ -11,9 +11,11 @@ import java.util.ArrayList;
  *
  */
 public class Writer {
+    String file;
     BufferedWriter writer;
     public Writer(String file){
         try{
+            this.file = file;
             this.writer = new BufferedWriter(new FileWriter(file));
         }catch (IOException e){
             e.printStackTrace();
@@ -22,8 +24,9 @@ public class Writer {
 
     public void write(Block block){
         try {
+            writer = new BufferedWriter(new FileWriter(file, true));
             writer.write(block.toString());
-            writer.flush();
+            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -38,14 +41,6 @@ public class Writer {
         	}
             writer.write(output);
             writer.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void close(){
-        try {
-            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
