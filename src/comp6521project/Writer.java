@@ -34,13 +34,12 @@ public class Writer {
     
     public void writeChunk(ArrayList<Block> blocks){
         try {
-        	String output = "";
         	for(Block b : blocks) 
         	{
-        		output += b.toString();
+        		writer.write(b.toString());
+                writer.flush();
         	}
-            writer.write(output);
-            writer.flush();
+            
         } catch (IOException e) {
             e.printStackTrace();
         }

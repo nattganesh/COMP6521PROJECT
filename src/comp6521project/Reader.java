@@ -56,6 +56,21 @@ public class Reader{
 		currentBlock = block;
 	}
 	
+	public int readBlocks(ArrayList<Tuple> tuples) 
+	{
+		this.currentTuples = tuples;
+		int countNumberOfBlocksRead = 0;
+		while(Runtime.getRuntime().freeMemory() > (Runtime.getRuntime().maxMemory()*0.1f)) 
+		{
+			countNumberOfBlocksRead++;			
+			readBlock();
+			
+			if(finishedReading)
+				break;
+		}
+		return countNumberOfBlocksRead;
+	}
+	
 	public int readBlocks(int numBlocks) 
 	{
 		return readBlocks(numBlocks, new ArrayList<Tuple>());

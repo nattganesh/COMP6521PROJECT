@@ -7,8 +7,8 @@ public class Main {
 
 	public static final int kiloByte = 1024;
 	public static final int megaByte = 1048576;
-	public static final int maxMemory = kiloByte * 555;
-//	public static final int maxMemory = 5 * megaByte; //5Mb
+//	public static final int maxMemory = kiloByte * 555;
+	public static final int maxMemory = 5 * megaByte; //5Mb
 //	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
 //	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
@@ -40,21 +40,22 @@ public class Main {
 	public static void main(String[] args) {
 //		System.out.println(Runtime.getRuntime().maxMemory());
 
+		System.out.println("Currently Reading and Sorting -- Phase 1 ");
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
 
 		//Number of blocks we can process based of available memory
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
-		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
+//		System.out.println("Max Chunk size of " + maxNumberOfBlocksToProcess + " blocks can be read at a time.");
 
 		long sortStart = System.nanoTime();
-		int numFiles = readAndSort(r, maxNumberOfBlocksToProcess, 0, 0);
+		int numFiles = readAndSort(r, 0, 0);
 		long sortEnd = System.nanoTime();
 		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
 
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
-		String mergedFile = merge(402, maxNumberOfBlocksToProcess);
+		String mergedFile = merge(numFiles, maxNumberOfBlocksToProcess);
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 
@@ -63,25 +64,29 @@ public class Main {
 		System.out.println("Complete");
 	}
 	
-	public static int readAndSort(Reader r, int maxNumberOfBlocksToProcess, int numFiles, int sortIO) 
+	public static int readAndSort(Reader r, int numFiles, int sortIO) 
 	{
 		while(!r.finishedReading)
 		{
-			sortIO++; // reading file
-			int countNumberOfBlocksRead = r.readBlocks(maxNumberOfBlocksToProcess);
-
-			//If we have to read second file to get T2, and memory is not full yet
-			if(inputFileName != inputFileName2 && countNumberOfBlocksRead < maxNumberOfBlocksToProcess) 
-			{
-				// If a second file exists, and memory still not full after reading file 1, lets read file 2.
-				Reader r2 = new Reader(inputPath + inputFileName2 + fileExtension);
-				sortIO++; // reading file
-				countNumberOfBlocksRead += r2.readBlocks(maxNumberOfBlocksToProcess - countNumberOfBlocksRead, r.currentTuples);
-				inputFileName = inputFileName2; // To indicate we have acknowledge both files
-				r = r2;
-			}
 			
-			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
+			int countNumberOfBlocksRead = r.readBlocks(new ArrayList<>());
+			sortIO += countNumberOfBlocksRead; // reading file
+			
+//If we have to read second file to get T2, and memory is not full yet
+//			if(inputFileName != inputFileName2) 
+//			{
+//				// If a second file exists, and memory still not full after reading file 1, lets read file 2.
+//				Reader r2 = new Reader(inputPath + inputFileName2 + fileExtension);
+//				sortIO++; // reading file
+//				countNumberOfBlocksRead += r2.readBlocks(r.currentTuples);
+//				inputFileName = inputFileName2; // To indicate we have acknowledge both files
+//				r = r2;
+//				sortIO += countNumberOfBlocksRead; // reading file
+//			}
+			
+			if(!r.currentTuples.isEmpty()) {
+			
+//			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
 			quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
 			
 //			System.out.println("Chunk Sorted");
@@ -113,17 +118,21 @@ public class Main {
 //				System.out.println(numRecordsInBlock);
 			}
 			
-			writer.writeChunk(currentBlocks);
-			sortIO++; // writing to file
-			numFiles++;
+			if(!currentBlocks.isEmpty()) 
+			{
+				writer.writeChunk(currentBlocks);
+				sortIO += currentBlocks.size(); // writing to file
+				numFiles++;
+			}
+			}
 		}
 		
 		if(inputFileName != inputFileName2) 
 		{
+			inputFileName = inputFileName2; // To indicate we have acknowledge both files
 			// If a second file exists
 			r = new Reader(inputPath + inputFileName2 + fileExtension);
-			readAndSort(r, maxNumberOfBlocksToProcess, numFiles, sortIO);
-			inputFileName = inputFileName2; // To indicate we have acknowledge both files
+			readAndSort(r, numFiles, sortIO);
 		}
 		else 
 		{
@@ -258,6 +267,7 @@ public class Main {
 		Writer writer = new Writer(outputPath + outputFileName + "_processed" + fileExtension);
 		Reader reader = new Reader(sortedFile);
 
+		System.out.println("Number of Tuples " + reader.currentTuples.size());
 		while (!reader.finishedReading) {
 			reader.readBlocks(maxBlocksToRead - 1);
 			Block output = new Block();
