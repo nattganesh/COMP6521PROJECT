@@ -12,7 +12,7 @@ public class CreateData {
 
 	public static void main(String[] args) {
 
-		int HOW_MANY = 500000;
+		int HOW_MANY = 5000;
 		
 		
 		
@@ -52,7 +52,7 @@ public class CreateData {
 	        tuple.add(t);
 		}
 		try {
-			BufferedWriter writer = new BufferedWriter(new FileWriter(Main.inputPath + "HalfMillionData" + Main.fileExtension));
+			BufferedWriter writer = new BufferedWriter(new FileWriter(Main.inputPath + "5K" + Main.fileExtension));
 		
 			for(Tuple t: tuple) 
 			{
