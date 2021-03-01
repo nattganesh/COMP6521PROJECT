@@ -36,15 +36,19 @@ public class Main {
     public static String inputPath = System.getProperty("user.dir")+"/textfiles/input/";
     public static String outputPath = System.getProperty("user.dir")+"/textfiles/output/";
     
+    static int totalIO = 0;
+    
 	public static void main(String[] args) {
 
+		long sortStart = System.nanoTime();
+		
 		System.out.println("Currently Reading and Sorting -- Phase 1 ");
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
 
 		//Number of blocks we can process based of available memory
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
 
-		long sortStart = System.nanoTime();
+		
 		readAndSort(r, 0, 0);
 		r = null;
 		long sortEnd = System.nanoTime();
@@ -57,9 +61,12 @@ public class Main {
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 		
+		long processStart = System.nanoTime();
 		processTuples(mergedFile, maxNumberOfBlocksToProcess);
-//		processTuples(outputPath + outputFileName + "_pass_" + 1 + "_" + 0 + fileExtension, maxNumberOfBlocksToProcess);
+		long processEnd = System.nanoTime();
 
+		System.out.println("Total number of disk I/O’s performed to produce T: " + totalIO);
+		System.out.println("Total execution time to produce T: " + (processEnd-sortStart)/1_000_000_000 + "s");
 		System.out.println("Complete");
 	}
 	static int numFilesCounts = 0;
@@ -122,6 +129,7 @@ public class Main {
 		else 
 		{
 			System.out.println("Disk I/O at sort phase: " + sortIO);
+			totalIO += sortIO;
 		}
 		numFilesCounts+= numFiles;
 //		System.out.println("numFilesToRead: " + numFilesCounts);
@@ -249,6 +257,7 @@ public class Main {
 			System.out.println("Pass " + i + " Finished");
 		}
 		System.out.println("Disk I/O at merge phase: " + numIO);
+		totalIO += numIO;
 		return outputPath + outputFileName + "_pass_" + numPasses + "_" + writerIndex + fileExtension;
 	}
     
@@ -258,10 +267,11 @@ public class Main {
 
 		int countRecordsInT = 0;
 		int countBlocksInT = 0;
+		int processIO = 0;
 		Block output = new Block();
 		
 		while (!reader.finishedReading) {
-			reader.readBlocks(new ArrayList<>());
+			processIO += reader.readBlocks(new ArrayList<>());
 			output = new Block();
 
 			int clientId = -1;
@@ -279,6 +289,7 @@ public class Main {
 						writer.write(output);
 						output = new Block();
 						countBlocksInT++;
+						processIO++;
 					}
 				
 				tuples.add(tuple);
@@ -290,9 +301,13 @@ public class Main {
 		{
 			writer.write(output);
 			countBlocksInT++;
+			processIO++;
 		}
 		System.out.println("Total number of records in the resulting table T: " + countRecordsInT);
-		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); //Math.ceil(countRecordsInT / Block.bytesPerBlock)
+		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); 
+		totalIO += processIO;
+//		System.out.println("Total number of disk I/O’s performed to produce T: " + countBlocksInT);
+//		System.out.println("Total execution time to produce T: " + countBlocksInT);
 	}
 
 
