@@ -12,9 +12,7 @@ public class CreateData {
 
 	public static void main(String[] args) {
 
-		int HOW_MANY = 5000;
-		
-		
+		int HOW_MANY = 1000000;		
 		
 		ArrayList<Tuple> tuple = new ArrayList<>();
 		for(int i = 0; i < HOW_MANY; i++) 
@@ -52,7 +50,7 @@ public class CreateData {
 	        tuple.add(t);
 		}
 		try {
-			BufferedWriter writer = new BufferedWriter(new FileWriter(Main.inputPath + "5K" + Main.fileExtension));
+			BufferedWriter writer = new BufferedWriter(new FileWriter(Main.inputPath + "OneMillionData" + Main.fileExtension));
 		
 			for(Tuple t: tuple) 
 			{

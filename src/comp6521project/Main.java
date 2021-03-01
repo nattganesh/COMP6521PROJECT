@@ -1,8 +1,6 @@
 package comp6521project;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 
 public class Main {
 
@@ -279,6 +277,7 @@ public class Main {
 		Writer writer = new Writer(outputPath + outputFileName + "_processed" + fileExtension);
 		Reader reader = new Reader(sortedFile);
 
+		int countRecordsInT1andT2 = 0;
 		int countRecordsInT = 0;
 		int countBlocksInT = 0;
 		int processIO = 0;
@@ -292,20 +291,22 @@ public class Main {
 			ArrayList<Tuple> tuples = new ArrayList<>();
 
 //			System.out.println("Number of Tuples " + reader.currentTuples.size());
-			for (Tuple tuple: reader.currentTuples) {
-				countRecordsInT++;
+			for (Tuple tuple: reader.currentTuples) 
+			{
+				countRecordsInT1andT2++;
 				if (clientId != -1 && clientId != tuple.clientId) 
 				{
 					output.addTuple(new ProcessedTuple(tuples));
 					tuples = new ArrayList<>();
 				}
-					if (output.isFull()) { // || tuple == reader.currentTuples.get(reader.currentTuples.size() - 1)
-						writer.write(output);
-						output = new Block();
-						countBlocksInT++;
-						processIO++;
-					}
-				
+				if (output.isFull()) 
+				{
+					countRecordsInT += output.size();
+					writer.write(output);
+					output = new Block();
+					countBlocksInT++;
+					processIO++;
+				}				
 				tuples.add(tuple);
 				clientId = tuple.clientId;
 			}
@@ -313,18 +314,16 @@ public class Main {
 		
 		if (!output.isEmpty()) 
 		{
+			countRecordsInT += output.size();
 			writer.write(output);
 			countBlocksInT++;
 			processIO++;
 		}
+		System.out.println("Total number of records in the resulting tables T1 and T2: " + countRecordsInT1andT2);
 		System.out.println("Total number of records in the resulting table T: " + countRecordsInT);
 		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); 
 		totalIO += processIO;
 //		System.out.println("Total number of disk I/Os performed to produce T: " + countBlocksInT);
 //		System.out.println("Total execution time to produce T: " + countBlocksInT);
 	}
-
-
-
-
 }

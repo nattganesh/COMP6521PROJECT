@@ -30,10 +30,11 @@ public class Block {
     }
 
     public void addTuple(Tuple tuple) {
-        for (int i=0;i<recordsPerBlock;i++) {
-                records.add(tuple);
-                return;
-        }
+    	if (records.size() == recordsPerBlock) 
+    	{
+    		return;
+    	}
+    	records.add(tuple);
     }
 
     public void removeTuple(int index) {
@@ -68,4 +69,5 @@ public class Block {
 
     public boolean isFull() { return records.size() >= recordsPerBlock; }
     public boolean isEmpty() { return records.isEmpty(); }
+    public int size() { return records.size(); }
 }
