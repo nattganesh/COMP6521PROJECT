@@ -6,12 +6,12 @@ import java.util.HashMap;
 
 public class Main {
 
-	public static final int kiloByte = 1024;
-	public static final int megaByte = 1048576;
+//	public static final int kiloByte = 1024;
+//	public static final int megaByte = 1048576;
 //	public static final int maxMemory = kiloByte * 555;
 //	public static final int maxMemory = 5 * megaByte; //5Mb
 //	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
-	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
+//	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 //	public static String inputFileName = "5K";
 //	public static String inputFileName = "Input_Example";
@@ -40,7 +40,7 @@ public class Main {
     static int totalIO = 0;
     
 	public static void main(String[] args) {
-
+		
 		//System.gc();
 		long sortStart = System.nanoTime();
 		
@@ -48,7 +48,8 @@ public class Main {
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
 
 		//Number of blocks we can process based of available memory
-		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
+		int maxNumberOfBlocksToProcess = Math.floorDiv((int) (Runtime.getRuntime().maxMemory()*0.85f), Block.bytesPerBlock);
+//		System.out.println("maxNumberOfBlocksToProcess: " + Runtime.getRuntime().maxMemory()*0.85f/1048576);
 		
 		int[] numFilesandSortIO = readAndSort(r, 0, 0);
 		if(inputFileName != inputFileName2) 
@@ -70,6 +71,7 @@ public class Main {
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
+		
 		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess);
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class Block {
     public static final int recordsPerBlock = 9;
-    public static final int bytesPerBlock = 2 * Main.kiloByte;// 1024;
+    public static final int bytesPerBlock = 2 * 1024;// 1024;
     /**
      * https://www.javamex.com/tutorials/memory/string_memory_usage.shtml
      * the minimum memory usage of a Java String
