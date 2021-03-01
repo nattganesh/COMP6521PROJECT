@@ -8,9 +8,9 @@ public class Main {
 	public static final int kiloByte = 1024;
 	public static final int megaByte = 1048576;
 //	public static final int maxMemory = kiloByte * 555;
-	public static final int maxMemory = 5 * megaByte; //5Mb
+//	public static final int maxMemory = 5 * megaByte; //5Mb
 //	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
-//	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
+	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 //	public static String inputFileName = "5K";
 //	public static String inputFileName = "Input_Example";
@@ -47,17 +47,26 @@ public class Main {
 
 		//Number of blocks we can process based of available memory
 		int maxNumberOfBlocksToProcess = Math.floorDiv(maxMemory, Block.bytesPerBlock);
-
 		
-		readAndSort(r, 0, 0);
+		int[] numFilesandSortIO = readAndSort(r, 0, 0);
+		if(inputFileName != inputFileName2) 
+		{
+//			System.out.println("numFilesToRead: " + numFiles);
+			inputFileName = inputFileName2; // To indicate we have acknowledge both files
+			// If a second file exists
+			r = new Reader(inputPath + inputFileName2 + fileExtension);
+			numFilesandSortIO = readAndSort(r, numFilesandSortIO[0], numFilesandSortIO[1]);
+		}
 		r = null;
 		long sortEnd = System.nanoTime();
+		totalIO += numFilesandSortIO[1];
+		System.out.println("Disk I/O at sort phase: " + numFilesandSortIO[1]);
 		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
 
 		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
-		String mergedFile = merge(numFilesCounts - 1, maxNumberOfBlocksToProcess);
+		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess);
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 		
@@ -69,9 +78,10 @@ public class Main {
 		System.out.println("Total execution time to produce T: " + (processEnd-sortStart)/1_000_000_000 + "s");
 		System.out.println("Complete");
 	}
-	static int numFilesCounts = 0;
-	public static int readAndSort(Reader r, int numFiles, int sortIO) 
+
+	public static int[] readAndSort(Reader r, int numFiles, int sortIO) 
 	{
+		int countFiles = numFiles;
 		while(!r.finishedReading)
 		{
 			
@@ -82,8 +92,6 @@ public class Main {
 			
 //			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
 			quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
-			
-			Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + numFiles + fileExtension);
 			
 			int numRecordsInBlock = 0;
 			Block b = new Block();
@@ -111,29 +119,31 @@ public class Main {
 			
 			if(!currentBlocks.isEmpty()) 
 			{
+				Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + countFiles + fileExtension);
 				writer.writeChunk(currentBlocks);
 				sortIO += currentBlocks.size(); // writing to file
-				numFiles++;
+				countFiles++;
 			}
 			}
 		}
 		
-		if(inputFileName != inputFileName2) 
-		{
-//			System.out.println("numFilesToRead: " + numFiles);
-			inputFileName = inputFileName2; // To indicate we have acknowledge both files
-			// If a second file exists
-			r = new Reader(inputPath + inputFileName2 + fileExtension);
-			readAndSort(r, numFiles, sortIO);
-		}
-		else 
-		{
-			System.out.println("Disk I/O at sort phase: " + sortIO);
-			totalIO += sortIO;
-		}
-		numFilesCounts+= numFiles;
+//		if(inputFileName != inputFileName2) 
+//		{
+////			System.out.println("numFilesToRead: " + numFiles);
+//			inputFileName = inputFileName2; // To indicate we have acknowledge both files
+//			// If a second file exists
+//			r = new Reader(inputPath + inputFileName2 + fileExtension);
+//			readAndSort(r, countFiles, sortIO);
+//		}
+//		else 
+//		{
+//			System.out.println("Disk I/O at sort phase: " + sortIO);
+//			totalIO += sortIO;
+//		}
+//		numFilesCounts+= numFiles;
 //		System.out.println("numFilesToRead: " + numFilesCounts);
-		return numFiles;
+		int[] ret = {countFiles, sortIO};
+		return ret;
 	}
 	
 	public static void quickSortByClientID(ArrayList<Tuple> toBeSorted, int low, int high) 
