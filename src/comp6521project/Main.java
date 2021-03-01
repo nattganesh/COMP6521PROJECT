@@ -8,8 +8,8 @@ public class Main {
 	public static final int kiloByte = 1024;
 	public static final int megaByte = 1048576;
 //	public static final int maxMemory = kiloByte * 555;
-//	public static final int maxMemory = 5 * megaByte; //5Mb
-	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
+	public static final int maxMemory = 5 * megaByte; //5Mb
+//	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
 //	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 //	public static String inputFileName = "5K";
@@ -74,7 +74,7 @@ public class Main {
 		processTuples(mergedFile, maxNumberOfBlocksToProcess);
 		long processEnd = System.nanoTime();
 
-		System.out.println("Total number of disk I/O’s performed to produce T: " + totalIO);
+		System.out.println("Total number of disk I/Os performed to produce T: " + totalIO);
 		System.out.println("Total execution time to produce T: " + (processEnd-sortStart)/1_000_000_000 + "s");
 		System.out.println("Complete");
 	}
@@ -184,7 +184,7 @@ public class Main {
     	System.out.println("numFilesToRead: " + numFilesToRead);
 		System.out.println("Merge start");
 		int numIO = 0;
-		int memoryLimit = 1;// (int)(maxBlocksToProcess/4.5);
+		int memoryLimit = (int)(Runtime.getRuntime().maxMemory()*0.6f - Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
 		int maxBlocksPerFile = maxBlocksToProcess * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 		int writerIndex = 0;
@@ -192,7 +192,7 @@ public class Main {
 		for (int i = 0; i < numPasses; i++) {
 			int readerIndex = 0;
 			int numBlocksWrote = 0;
-			ArrayList<Block> buffer = new ArrayList<>();
+//			ArrayList<Block> buffer = new ArrayList<>();
 			Block output = new Block();
 
 			Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
@@ -209,15 +209,15 @@ public class Main {
 					reader.resetCurrentTuples();
 					numIO++;
 					readerIndex++;
-					buffer.add(reader.currentBlock);
+//					buffer.add(reader.currentBlock);
 					k++;
 				}
 				
-				while (!buffer.isEmpty()){
-					Block block = buffer.stream()
-							.min(Comparator.comparingInt(b->b.getTuple(0).clientId))
+				while (!readers.isEmpty()){
+					Reader reader = readers.stream()
+							.min(Comparator.comparingInt(r->r.currentBlock.getTuple(0).clientId))
 							.get();
-					Tuple tuple = block.getTuple(0);
+					Tuple tuple = reader.currentBlock.getTuple(0);
 					output.addTuple(tuple);
 
 					if (output.isFull()) {
@@ -231,22 +231,22 @@ public class Main {
 						numBlocksWrote++;
 						output = new Block();
 					}
-					block.records.remove(0);
+					reader.currentBlock.records.remove(0);
 					System.gc();
 					
-					if (block.records.isEmpty()){
-						int blockIndex = buffer.indexOf(block);
-						Reader reader = readers.get(blockIndex);
+					if (reader.currentBlock.records.isEmpty()){
+//						int blockIndex = readers.indexOf(block);
+//						Reader reader = readers.get(blockIndex);
 						reader.readBlock();
 						reader.resetCurrentTuples();
 						k++;
 						numIO++;
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
-							readers.remove(blockIndex);
-							buffer.remove(blockIndex);
+							readers.remove(reader);
+//							buffer.remove(blockIndex);
 							continue;
 						}
-						buffer.set(blockIndex, reader.currentBlock);
+//						buffer.set(blockIndex, reader.currentBlock);
 					}
 				}
 				System.out.println("Processed " + numFilesToRead + " files");
@@ -316,7 +316,7 @@ public class Main {
 		System.out.println("Total number of records in the resulting table T: " + countRecordsInT);
 		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); 
 		totalIO += processIO;
-//		System.out.println("Total number of disk I/O’s performed to produce T: " + countBlocksInT);
+//		System.out.println("Total number of disk I/Os performed to produce T: " + countBlocksInT);
 //		System.out.println("Total execution time to produce T: " + countBlocksInT);
 	}
 
