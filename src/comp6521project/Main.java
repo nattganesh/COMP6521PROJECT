@@ -4,31 +4,11 @@ import java.util.ArrayList;
 
 public class Main {
 
-//	public static final int kiloByte = 1024;
-//	public static final int megaByte = 1048576;
-//	public static final int maxMemory = kiloByte * 555;
-//	public static final int maxMemory = 5 * megaByte; //5Mb
-//	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
-//	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
-	
-//	public static String inputFileName = "5K";
-//	public static String inputFileName = "Input_Example";
 	public static String inputFileName = "HalfMillionData";
-//	public static String inputFileName = "HalfMillionData2";
 //	public static String inputFileName = "OneMillionData";
-//	public static String inputFileName = "OneMillionData2";
-//	public static String inputFileName = "Input_300000_records";
-//	public static String inputFileName = "mergeCheck";
-//	public static String inputFileName = "sortCheck";
-	
-//	public static String inputFileName2 = "50K";
-//	public static String inputFileName2 = "Input_Example";
-//	public static String inputFileName2 = "sortCheck2";
-//	public static String inputFileName2 = "HalfMillionData";
+
 	public static String inputFileName2 = "HalfMillionData2";
-//	public static String inputFileName2 = "OneMillionData";
 //	public static String inputFileName2 = "OneMillionData2";
-//	public static String inputFileName2 = "Input_100000_records";
 
 	public static String outputFileName = "Output";
 	public static String fileExtension = ".txt";
@@ -39,10 +19,9 @@ public class Main {
     
 	public static void main(String[] args) {
 		
-		//System.gc();
 		long sortStart = System.nanoTime();
 		
-		System.out.println("Currently Reading and Sorting -- Phase 1 ");
+		System.out.println("-------------Currently Reading and Sorting -- Pass 1 --------------------");
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
 
 		//Number of blocks we can process based of available memory
@@ -63,24 +42,27 @@ public class Main {
 		long sortEnd = System.nanoTime();
 		System.gc();
 		totalIO += numFilesandSortIO[1];
-		System.out.println("Disk I/O at sort phase: " + numFilesandSortIO[1]);
-		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
+		System.out.println("Disk I/O at Read and Sort phase (PASS 1): " + numFilesandSortIO[1]);
+		System.out.println("Read and Sort phase (PASS 1) Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
 
-		System.out.println("Number of Tuples " + Reader.totalNumberOfTuples);
+		System.out.println("Total number of records in the resulting tables T1 and T2: " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
 		
 		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess);
 		long mergeEnd = System.nanoTime();
-		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
+		System.out.println("Merge Phase (PASS 2) Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 		System.gc();
 		long processStart = System.nanoTime();
 		processTuples(mergedFile, maxNumberOfBlocksToProcess);
 		long processEnd = System.nanoTime();
+		
+		System.out.println("Process Data Execution Time: " + (processEnd-processStart)/1_000_000_000 + "s");
 
 		System.out.println("Total number of disk I/Os performed to produce T: " + totalIO);
 		System.out.println("Total execution time to produce T: " + (processEnd-sortStart)/1_000_000_000 + "s");
-		System.out.println("Complete");
+//		System.out.println("Complete");
+//		System.out.println("Total number of Disk IO's in the resulting table T should be: " + numFilesandSortIO[1] * 3);
 	}
 
 	public static int[] readAndSort(Reader r, int numFiles, int sortIO) 
@@ -184,8 +166,9 @@ public class Main {
     }
 	
     public static String merge(int numFilesToRead, int maxBlocksToProcess) {
-    	System.out.println("numFilesToRead: " + numFilesToRead);
-		System.out.println("Merge start");
+//    	System.out.println("numFilesToRead: " + numFilesToRead);
+//		System.out.println("Merge start");
+		System.out.println("-------------Currently starting Merge -- Pass 2 --------------------");
 		int numIO = 0;
 		int memoryLimit = (int)(Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
 		int maxBlocksPerFile = maxBlocksToProcess * memoryLimit;
@@ -214,11 +197,10 @@ public class Main {
 					k++;
 				}
 
-				System.out.println("read "+k+" blocks");
+//				System.out.println("read "+k+" blocks");
 				while (!readers.isEmpty()){
 					Reader reader = getMin(readers);
 					Tuple tuple = reader.currentBlock.getTuple(0);
-					output.addTuple(tuple);
 
 					if (output.isFull()) {
 						if (numBlocksWrote >= maxBlocksPerFile) {
@@ -229,6 +211,11 @@ public class Main {
 						numIO++;
 						numBlocksWrote++;
 						output = new Block();
+						output.addTuple(tuple);
+					}
+					else 
+					{
+						output.addTuple(tuple);
 					}
 					reader.currentBlock.records.remove(0);
 
@@ -236,13 +223,15 @@ public class Main {
 						reader.readBlock();
 						reader.resetCurrentTuples();
 						k++;
-						numIO++;
+						if(!reader.currentBlock.records.isEmpty()) {
+							numIO++;
+						}
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
 							readers.remove(reader);
 						}
 					}
 				}
-				System.out.println("Processed " + numFilesToRead + " files");
+//				System.out.println("Processed " + numFilesToRead + " files");
 
 				if (!output.records.isEmpty()) {
 					if (numBlocksWrote >= maxBlocksPerFile) {
@@ -258,7 +247,7 @@ public class Main {
 			maxBlocksPerFile *= memoryLimit;
 			System.out.println("Pass " + i + " Finished");
 		}
-		System.out.println("Disk I/O at merge phase: " + numIO);
+		System.out.println("Disk I/O at Merge phase (PASS 1): " + numIO);
 		totalIO += numIO;
 		return outputPath + outputFileName + "_pass_" + numPasses + "_" + writerIndex + fileExtension;
 	}
@@ -274,6 +263,9 @@ public class Main {
 	}
     
     public static void processTuples(String sortedFile, int maxBlocksToRead) {
+    	
+    	System.out.println("------------- Currently Doing The Requested Processing --------------------");
+    	
 		Writer writer = new Writer(outputPath + outputFileName + "_processed" + fileExtension);
 		Reader reader = new Reader(sortedFile);
 
@@ -284,7 +276,8 @@ public class Main {
 		Block output = new Block();
 		
 		while (!reader.finishedReading) {
-			processIO += reader.readBlocks(new ArrayList<>());
+			int countNumberOfBlocksRead = reader.readBlocks(new ArrayList<>());
+			processIO += countNumberOfBlocksRead;
 			output = new Block();
 
 			int clientId = -1;
@@ -320,8 +313,11 @@ public class Main {
 			processIO++;
 		}
 		System.out.println("Total number of records in the resulting tables T1 and T2: " + countRecordsInT1andT2);
+		System.out.println("Total number of IO's in process phase: " + processIO); 
+		System.out.println("================================================================"); 
 		System.out.println("Total number of records in the resulting table T: " + countRecordsInT);
 		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); 
+		
 		totalIO += processIO;
 //		System.out.println("Total number of disk I/Os performed to produce T: " + countBlocksInT);
 //		System.out.println("Total execution time to produce T: " + countBlocksInT);
