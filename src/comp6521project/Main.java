@@ -189,7 +189,7 @@ public class Main {
     	System.out.println("numFilesToRead: " + numFilesToRead);
 		System.out.println("Merge start");
 		int numIO = 0;
-		int memoryLimit = (int)(Runtime.getRuntime().maxMemory()*0.6f - Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
+		int memoryLimit = (int)(Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
 		int maxBlocksPerFile = maxBlocksToProcess * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 		int writerIndex = 0;
@@ -197,7 +197,6 @@ public class Main {
 		for (int i = 0; i < numPasses; i++) {
 			int readerIndex = 0;
 			int numBlocksWrote = 0;
-//			ArrayList<Block> buffer = new ArrayList<>();
 			Block output = new Block();
 
 			Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
@@ -206,29 +205,26 @@ public class Main {
 			while (readerIndex < numFilesToRead){
 				int numBlocksToRead = Math.min(memoryLimit, maxBlocksToProcess);
 				int k = 0;
+
 				while (readerIndex < numFilesToRead && k < numBlocksToRead && Runtime.getRuntime().freeMemory() > (Runtime.getRuntime().maxMemory()*0.1f)){
-//						System.out.println("Here " + Runtime.getRuntime().freeMemory()/1024);
 					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
 					readers.add(reader);
 					reader.readBlock();
 					reader.resetCurrentTuples();
 					numIO++;
 					readerIndex++;
-//					buffer.add(reader.currentBlock);
 					k++;
 				}
-				
+
+				System.out.println("read "+k+" blocks");
 				while (!readers.isEmpty()){
-					Reader reader = readers.stream()
-							.min(Comparator.comparingInt(r->r.currentBlock.getTuple(0).clientId))
-							.get();
+					Reader reader = getMin(readers);
 					Tuple tuple = reader.currentBlock.getTuple(0);
 					output.addTuple(tuple);
 
 					if (output.isFull()) {
 						if (numBlocksWrote >= maxBlocksPerFile) {
 							writerIndex++;
-//							writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 							numBlocksWrote = 0;
 						}
 						writer.write(output);
@@ -237,21 +233,15 @@ public class Main {
 						output = new Block();
 					}
 					reader.currentBlock.records.remove(0);
-					System.gc();
-					
+
 					if (reader.currentBlock.records.isEmpty()){
-//						int blockIndex = readers.indexOf(block);
-//						Reader reader = readers.get(blockIndex);
 						reader.readBlock();
 						reader.resetCurrentTuples();
 						k++;
 						numIO++;
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
 							readers.remove(reader);
-//							buffer.remove(blockIndex);
-							continue;
 						}
-//						buffer.set(blockIndex, reader.currentBlock);
 					}
 				}
 				System.out.println("Processed " + numFilesToRead + " files");
@@ -259,7 +249,6 @@ public class Main {
 				if (!output.records.isEmpty()) {
 					if (numBlocksWrote >= maxBlocksPerFile) {
 						writerIndex++;
-//						writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
 					}
 					writer.write(output);
 					numIO++;
@@ -274,6 +263,16 @@ public class Main {
 		System.out.println("Disk I/O at merge phase: " + numIO);
 		totalIO += numIO;
 		return outputPath + outputFileName + "_pass_" + numPasses + "_" + writerIndex + fileExtension;
+	}
+
+	public static Reader getMin(ArrayList<Reader> readers) {
+		Reader min = null;
+		for (Reader reader: readers) {
+			if (min == null || reader.currentBlock.records.get(0).clientId < min.currentBlock.records.get(0).clientId) {
+				min = reader;
+			}
+		}
+		return min;
 	}
     
     public static void processTuples(String sortedFile, int maxBlocksToRead) {
