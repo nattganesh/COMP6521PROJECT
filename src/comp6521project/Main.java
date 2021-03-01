@@ -2,15 +2,16 @@ package comp6521project;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 
 public class Main {
 
 	public static final int kiloByte = 1024;
 	public static final int megaByte = 1048576;
 //	public static final int maxMemory = kiloByte * 555;
-	public static final int maxMemory = 5 * megaByte; //5Mb
+//	public static final int maxMemory = 5 * megaByte; //5Mb
 //	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
-//	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
+	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 //	public static String inputFileName = "5K";
 //	public static String inputFileName = "Input_Example";
@@ -40,6 +41,7 @@ public class Main {
     
 	public static void main(String[] args) {
 
+		//System.gc();
 		long sortStart = System.nanoTime();
 		
 		System.out.println("Currently Reading and Sorting -- Phase 1 ");
@@ -51,6 +53,7 @@ public class Main {
 		int[] numFilesandSortIO = readAndSort(r, 0, 0);
 		if(inputFileName != inputFileName2) 
 		{
+			System.gc();
 //			System.out.println("numFilesToRead: " + numFiles);
 			inputFileName = inputFileName2; // To indicate we have acknowledge both files
 			// If a second file exists
@@ -59,6 +62,7 @@ public class Main {
 		}
 		r = null;
 		long sortEnd = System.nanoTime();
+		System.gc();
 		totalIO += numFilesandSortIO[1];
 		System.out.println("Disk I/O at sort phase: " + numFilesandSortIO[1]);
 		System.out.println("Sort Phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
@@ -69,7 +73,7 @@ public class Main {
 		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess);
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
-		
+		System.gc();
 		long processStart = System.nanoTime();
 		processTuples(mergedFile, maxNumberOfBlocksToProcess);
 		long processEnd = System.nanoTime();
@@ -84,7 +88,7 @@ public class Main {
 		int countFiles = numFiles;
 		while(!r.finishedReading)
 		{
-			
+			System.gc();
 			int countNumberOfBlocksRead = r.readBlocks(new ArrayList<>());
 			sortIO += countNumberOfBlocksRead; // reading file
 			
@@ -179,7 +183,6 @@ public class Main {
         return i+1;
     }
 	
-
     public static String merge(int numFilesToRead, int maxBlocksToProcess) {
     	System.out.println("numFilesToRead: " + numFilesToRead);
 		System.out.println("Merge start");
