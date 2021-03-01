@@ -9,8 +9,8 @@ public class Main {
 	public static final int megaByte = 1048576;
 //	public static final int maxMemory = kiloByte * 555;
 //	public static final int maxMemory = 5 * megaByte; //5Mb
-//	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
-	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
+	public static final int maxMemory = 10 * megaByte; //Case 1 : 10Mb
+//	public static final int maxMemory = 20 * megaByte; //Case 2 : 20Mb
 	
 //	public static String inputFileName = "5K";
 //	public static String inputFileName = "Input_Example";
@@ -180,12 +180,12 @@ public class Main {
     }
 	
 
-    public static String merge(int numFilesToRead, int numBlocksPerFile) {
+    public static String merge(int numFilesToRead, int maxBlocksToProcess) {
     	System.out.println("numFilesToRead: " + numFilesToRead);
 		System.out.println("Merge start");
 		int numIO = 0;
-		int memoryLimit = (int)(numBlocksPerFile/4.5);
-		int maxBlocksPerFile = numBlocksPerFile * memoryLimit;
+		int memoryLimit = 1;// (int)(maxBlocksToProcess/4.5);
+		int maxBlocksPerFile = maxBlocksToProcess * memoryLimit;
 		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 		int writerIndex = 0;
 
@@ -199,7 +199,7 @@ public class Main {
 			ArrayList<Reader> readers = new ArrayList<>();
 
 			while (readerIndex < numFilesToRead){
-				int numBlocksToRead = Math.min(memoryLimit, numBlocksPerFile);
+				int numBlocksToRead = Math.min(memoryLimit, maxBlocksToProcess);
 				int k = 0;
 				while (readerIndex < numFilesToRead && k < numBlocksToRead && Runtime.getRuntime().freeMemory() > (Runtime.getRuntime().maxMemory()*0.1f)){
 //						System.out.println("Here " + Runtime.getRuntime().freeMemory()/1024);
