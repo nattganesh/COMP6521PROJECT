@@ -67,4 +67,5 @@ public class Block {
     }
 
     public boolean isFull() { return records.size() >= recordsPerBlock; }
+    public boolean isEmpty() { return records.isEmpty(); }
 }

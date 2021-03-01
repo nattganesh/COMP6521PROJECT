@@ -256,33 +256,43 @@ public class Main {
 		Writer writer = new Writer(outputPath + outputFileName + "_processed" + fileExtension);
 		Reader reader = new Reader(sortedFile);
 
-		int countTuples = 0;
+		int countRecordsInT = 0;
+		int countBlocksInT = 0;
+		Block output = new Block();
 		
 		while (!reader.finishedReading) {
 			reader.readBlocks(new ArrayList<>());
-			Block output = new Block();
+			output = new Block();
 
 			int clientId = -1;
 			ArrayList<Tuple> tuples = new ArrayList<>();
 
 //			System.out.println("Number of Tuples " + reader.currentTuples.size());
 			for (Tuple tuple: reader.currentTuples) {
-				countTuples++;
+				countRecordsInT++;
 				if (clientId != -1 && clientId != tuple.clientId) 
 				{
 					output.addTuple(new ProcessedTuple(tuples));
 					tuples = new ArrayList<>();
 				}
-					if (output.isFull()) {
+					if (output.isFull()) { // || tuple == reader.currentTuples.get(reader.currentTuples.size() - 1)
 						writer.write(output);
 						output = new Block();
+						countBlocksInT++;
 					}
 				
 				tuples.add(tuple);
 				clientId = tuple.clientId;
 			}
 		}
-		System.out.println("Number of Tuples " + countTuples);
+		
+		if (!output.isEmpty()) 
+		{
+			writer.write(output);
+			countBlocksInT++;
+		}
+		System.out.println("Total number of records in the resulting table T: " + countRecordsInT);
+		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); //Math.ceil(countRecordsInT / Block.bytesPerBlock)
 	}
 
 
