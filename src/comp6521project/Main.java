@@ -4,11 +4,11 @@ import java.util.ArrayList;
 
 public class Main {
 
-	public static String inputFileName = "HalfMillionData";
-//	public static String inputFileName = "OneMillionData";
+//	public static String inputFileName = "HalfMillionData";
+	public static String inputFileName = "OneMillionData";
 
-	public static String inputFileName2 = "HalfMillionData2";
-//	public static String inputFileName2 = "OneMillionData2";
+//	public static String inputFileName2 = "HalfMillionData2";
+	public static String inputFileName2 = "OneMillionData2";
 
 	public static String outputFileName = "Output";
 	public static String fileExtension = ".txt";
@@ -49,12 +49,12 @@ public class Main {
 
 		long mergeStart = System.nanoTime();
 		
-		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess);
+		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess, Reader.totalNumberOfTuples);
 		long mergeEnd = System.nanoTime();
 		System.out.println("Merge Phase (PASS 2) Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 		System.gc();
 		long processStart = System.nanoTime();
-		processTuples(mergedFile, maxNumberOfBlocksToProcess);
+		processTuples(mergedFile);
 		long processEnd = System.nanoTime();
 		
 		System.out.println("Process Data Execution Time: " + (processEnd-processStart)/1_000_000_000 + "s");
@@ -165,55 +165,59 @@ public class Main {
         return i+1;
     }
 	
-    public static String merge(int numFilesToRead, int maxBlocksToProcess) {
-//    	System.out.println("numFilesToRead: " + numFilesToRead);
-//		System.out.println("Merge start");
+    public static String merge(int numFilesToRead, int maxBlocksToProcess, int numTuplesToProcess) {
+//		int count = 0;
+//		for (int i = 0; i < numFilesToRead; i++) {
+//			Reader reader = new Reader(outputPath + outputFileName + "_pass_0" + "_" + i + fileExtension);
+//			while (!reader.finishedReading) {
+//				reader.readBlock();
+//				count += reader.currentBlock.records.size();
+//			}
+//		}
+//		System.out.println("Number of tuples after sort: " + count);
+//		return "";
 		System.out.println("-------------Currently starting Merge -- Pass 2 --------------------");
 		int numIO = 0;
 		int memoryLimit = (int)(Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
-		int maxBlocksPerFile = maxBlocksToProcess * memoryLimit;
-		int numPasses = (int) Math.ceil(Math.log(numFilesToRead)/Math.log(memoryLimit));
 		int writerIndex = 0;
+		int numTuplesWrote = 0;
+		int readIO = 0;
+		int numPasses = 0;
 
-		for (int i = 0; i < numPasses; i++) {
+		while (numTuplesWrote < numTuplesToProcess){
 			int readerIndex = 0;
-			int numBlocksWrote = 0;
 			Block output = new Block();
 
-			Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (i+1) + "_" + writerIndex + fileExtension);
-			ArrayList<Reader> readers = new ArrayList<>();
-
 			while (readerIndex < numFilesToRead){
+				ArrayList<Reader> readers = new ArrayList<>();
+				Writer writer = new Writer(outputPath + outputFileName + "_pass_" + (numPasses+1) + "_" + writerIndex + fileExtension);
+
 				int numBlocksToRead = Math.min(memoryLimit, maxBlocksToProcess);
 				int k = 0;
 
-				while (readerIndex < numFilesToRead && k < numBlocksToRead && Runtime.getRuntime().freeMemory() > (Runtime.getRuntime().maxMemory()*0.1f)){
-					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + i + "_" + readerIndex + fileExtension);
+				while (readerIndex < numFilesToRead && k < numBlocksToRead && Runtime.getRuntime().freeMemory() > (Runtime.getRuntime().maxMemory()*0.15f)){
+					Reader reader = new Reader(outputPath + outputFileName + "_pass_" + numPasses + "_" + readerIndex + fileExtension);
 					readers.add(reader);
 					reader.readBlock();
 					reader.resetCurrentTuples();
 					numIO++;
+					readIO++;
 					readerIndex++;
 					k++;
 				}
 
-//				System.out.println("read "+k+" blocks");
 				while (!readers.isEmpty()){
 					Reader reader = getMin(readers);
 					Tuple tuple = reader.currentBlock.getTuple(0);
 
 					if (output.isFull()) {
-						if (numBlocksWrote >= maxBlocksPerFile) {
-							writerIndex++;
-							numBlocksWrote = 0;
-						}
 						writer.write(output);
+						numTuplesWrote+= output.size();
 						numIO++;
-						numBlocksWrote++;
 						output = new Block();
 						output.addTuple(tuple);
 					}
-					else 
+					else
 					{
 						output.addTuple(tuple);
 					}
@@ -222,31 +226,33 @@ public class Main {
 					if (reader.currentBlock.records.isEmpty()){
 						reader.readBlock();
 						reader.resetCurrentTuples();
-						k++;
+						readIO++;
 						if(!reader.currentBlock.records.isEmpty()) {
 							numIO++;
 						}
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
+							readIO--;
 							readers.remove(reader);
 						}
 					}
 				}
-//				System.out.println("Processed " + numFilesToRead + " files");
 
 				if (!output.records.isEmpty()) {
-					if (numBlocksWrote >= maxBlocksPerFile) {
-						writerIndex++;
-					}
 					writer.write(output);
+					numTuplesWrote+=output.size();
 					numIO++;
 				}
-
+				writerIndex++;
+				System.out.println("Processed " + numTuplesWrote + " tuples");
+				numTuplesWrote = 0;
 			}
+			System.out.println("Pass " + numPasses + " Finished");
+			numFilesToRead = writerIndex;
 			writerIndex = 0;
-			numFilesToRead = writerIndex + 1;
-			maxBlocksPerFile *= memoryLimit;
-			System.out.println("Pass " + i + " Finished");
+			numPasses++;
 		}
+		System.out.println("ReadIO: "+readIO);
+		System.out.println("Total number of records in the resulting tables T1 and T2: "+numTuplesWrote/numPasses);
 		System.out.println("Disk I/O at Merge phase (PASS 1): " + numIO);
 		totalIO += numIO;
 		return outputPath + outputFileName + "_pass_" + numPasses + "_" + writerIndex + fileExtension;
@@ -262,7 +268,7 @@ public class Main {
 		return min;
 	}
     
-    public static void processTuples(String sortedFile, int maxBlocksToRead) {
+    public static void processTuples(String sortedFile) {
     	
     	System.out.println("------------- Currently Doing The Requested Processing --------------------");
     	
@@ -273,18 +279,16 @@ public class Main {
 		int countRecordsInT = 0;
 		int countBlocksInT = 0;
 		int processIO = 0;
+
 		Block output = new Block();
-		
+		ArrayList<Tuple> tuples = new ArrayList<>();
+		int clientId = -1;
+
 		while (!reader.finishedReading) {
 			int countNumberOfBlocksRead = reader.readBlocks(new ArrayList<>());
 			processIO += countNumberOfBlocksRead;
-			output = new Block();
 
-			int clientId = -1;
-			ArrayList<Tuple> tuples = new ArrayList<>();
-
-//			System.out.println("Number of Tuples " + reader.currentTuples.size());
-			for (Tuple tuple: reader.currentTuples) 
+			for (Tuple tuple: reader.currentTuples)
 			{
 				countRecordsInT1andT2++;
 				if (clientId != -1 && clientId != tuple.clientId) 
