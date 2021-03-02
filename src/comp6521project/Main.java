@@ -70,46 +70,46 @@ public class Main {
 		int countFiles = numFiles;
 		while(!r.finishedReading)
 		{
-			System.gc();
-			int countNumberOfBlocksRead = r.readBlocks(new ArrayList<>());
-			sortIO += countNumberOfBlocksRead; // reading file
-			
-			if(!r.currentTuples.isEmpty()) {
-			
-//			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
-			quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
-			
-			int numRecordsInBlock = 0;
-			Block b = new Block();
-			ArrayList<Block> currentBlocks = new ArrayList<>();
-			for(Tuple t: r.currentTuples) 
-			{
-				if(numRecordsInBlock < Block.recordsPerBlock)
+				System.gc();
+				int countNumberOfBlocksRead = r.readBlocks(new ArrayList<>());
+				sortIO += countNumberOfBlocksRead; // reading file
+
+				if(!r.currentTuples.isEmpty()) {
+
+	//			System.out.println("Read " + countNumberOfBlocksRead + " Blocks.");
+				quickSortByClientID(r.currentTuples, 0, r.currentTuples.size() - 1);
+
+				int numRecordsInBlock = 0;
+				Block b = new Block();
+				ArrayList<Block> currentBlocks = new ArrayList<>();
+				for(Tuple t: r.currentTuples)
 				{
-					b.addTuple(t);
-					numRecordsInBlock++;
-					if(t == r.currentTuples.get(r.currentTuples.size() - 1)) 
+					if(numRecordsInBlock < Block.recordsPerBlock)
+					{
+						b.addTuple(t);
+						numRecordsInBlock++;
+					}
+					else
+					{
+						currentBlocks.add(b);
+						numRecordsInBlock = 0;
+						b = new Block();
+						b.addTuple(t);
+						numRecordsInBlock++;
+					}
+					if(t == r.currentTuples.get(r.currentTuples.size() - 1))
 					{
 						currentBlocks.add(b);
 					}
 				}
-				else 
+
+				if(!currentBlocks.isEmpty())
 				{
-					currentBlocks.add(b);
-					numRecordsInBlock = 0;
-					b = new Block();
-					b.addTuple(t);
-					numRecordsInBlock++;
-				}	
-			}
-			
-			if(!currentBlocks.isEmpty()) 
-			{
-				Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + countFiles + fileExtension);
-				writer.writeChunk(currentBlocks);
-				sortIO += currentBlocks.size(); // writing to file
-				countFiles++;
-			}
+					Writer writer = new Writer(outputPath + outputFileName + "_pass_0_" + countFiles + fileExtension);
+					writer.writeChunk(currentBlocks);
+					sortIO += currentBlocks.size(); // writing to file
+					countFiles++;
+				}
 			}
 		}
 		
@@ -166,26 +166,17 @@ public class Main {
     }
 	
     public static String merge(int numFilesToRead, int maxBlocksToProcess, int numTuplesToProcess) {
-//		int count = 0;
-//		for (int i = 0; i < numFilesToRead; i++) {
-//			Reader reader = new Reader(outputPath + outputFileName + "_pass_0" + "_" + i + fileExtension);
-//			while (!reader.finishedReading) {
-//				reader.readBlock();
-//				count += reader.currentBlock.records.size();
-//			}
-//		}
-//		System.out.println("Number of tuples after sort: " + count);
-//		return "";
 		System.out.println("-------------Currently starting Merge -- Pass 2 --------------------");
 		int numIO = 0;
 		int memoryLimit = (int)(Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
-		int writerIndex = 0;
 		int numTuplesWrote = 0;
 		int readIO = 0;
 		int numPasses = 0;
+		int writerIndex = Integer.MAX_VALUE;
 
-		while (numTuplesWrote < numTuplesToProcess){
+		while (writerIndex > 1){
 			int readerIndex = 0;
+			writerIndex = 0;
 			Block output = new Block();
 
 			while (readerIndex < numFilesToRead){
@@ -212,7 +203,7 @@ public class Main {
 
 					if (output.isFull()) {
 						writer.write(output);
-						numTuplesWrote+= output.size();
+						numTuplesWrote += output.size();
 						numIO++;
 						output = new Block();
 						output.addTuple(tuple);
@@ -239,23 +230,20 @@ public class Main {
 
 				if (!output.records.isEmpty()) {
 					writer.write(output);
-					numTuplesWrote+=output.size();
+					numTuplesWrote += output.size();
 					numIO++;
 				}
 				writerIndex++;
-				System.out.println("Processed " + numTuplesWrote + " tuples");
-				numTuplesWrote = 0;
 			}
 			System.out.println("Pass " + numPasses + " Finished");
 			numFilesToRead = writerIndex;
-			writerIndex = 0;
 			numPasses++;
 		}
 		System.out.println("ReadIO: "+readIO);
 		System.out.println("Total number of records in the resulting tables T1 and T2: "+numTuplesWrote/numPasses);
 		System.out.println("Disk I/O at Merge phase (PASS 1): " + numIO);
 		totalIO += numIO;
-		return outputPath + outputFileName + "_pass_" + numPasses + "_" + writerIndex + fileExtension;
+		return outputPath + outputFileName + "_pass_" + numPasses + "_0" + fileExtension;
 	}
 
 	public static Reader getMin(ArrayList<Reader> readers) {
