@@ -240,8 +240,8 @@ public class Main {
 			numPasses++;
 		}
 		System.out.println("ReadIO: "+readIO);
-		System.out.println("Total number of records in the resulting tables T1 and T2: "+numTuplesWrote/numPasses);
-		System.out.println("Disk I/O at Merge phase (PASS 1): " + numIO);
+//		System.out.println("Total number of records in the resulting tables T1 and T2: "+numTuplesWrote/numPasses);
+		System.out.println("Disk I/O at Merge phase (PASS 1): " + (numIO/numPasses));
 		totalIO += numIO;
 		return outputPath + outputFileName + "_pass_" + numPasses + "_0" + fileExtension;
 	}
