@@ -21,7 +21,7 @@ public class Main {
 		
 		long sortStart = System.nanoTime();
 		
-		System.out.println("-------------Currently Reading and Sorting -- Pass 1 --------------------");
+		System.out.println("------------- Currently Reading and Sorting --------------------");
 		Reader r = new Reader(inputPath + inputFileName + fileExtension);
 
 		//Number of blocks we can process based of available memory
@@ -42,8 +42,8 @@ public class Main {
 		long sortEnd = System.nanoTime();
 		System.gc();
 		totalIO += numFilesandSortIO[1];
-		System.out.println("Disk I/O at Read and Sort phase (PASS 1): " + numFilesandSortIO[1]);
-		System.out.println("Read and Sort phase (PASS 1) Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
+		System.out.println("Disk I/O at Read and Sort phase: " + numFilesandSortIO[1]);
+		System.out.println("Read and Sort phase Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
 
 //		System.out.println("Total number of records in the resulting tables T1 and T2: " + Reader.totalNumberOfTuples);
 
@@ -51,7 +51,7 @@ public class Main {
 		
 		String mergedFile = merge(numFilesandSortIO[0], maxNumberOfBlocksToProcess, Reader.totalNumberOfTuples);
 		long mergeEnd = System.nanoTime();
-		System.out.println("Merge Phase (PASS 2) Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
+		System.out.println("Merge Phase Execution Time: " + (mergeEnd-mergeStart)/1_000_000_000 + "s");
 		System.gc();
 		long processStart = System.nanoTime();
 		processTuples(mergedFile);
@@ -150,7 +150,7 @@ public class Main {
     }
 	
     public static String merge(int numFilesToRead, int maxBlocksToProcess, int numTuplesToProcess) {
-		System.out.println("-------------Currently starting Merge -- Pass 2 --------------------");
+		System.out.println("------------- Currently starting Merge --------------------");
 		int numIO = 0;
 		int memoryLimit = (int)(Runtime.getRuntime().freeMemory())/Block.bytesPerBlock;// (int)(maxBlocksToProcess/4.5);
 		int numTuplesWrote = 0;
@@ -217,16 +217,16 @@ public class Main {
 				}
 				writerIndex++;
 //				System.out.println("write IO: " + writeIO);
-				System.out.println("number of tuples wrote: " + numTuplesWrote);
+//				System.out.println("number of tuples wrote: " + numTuplesWrote);
 				writeIO=0;
 				numTuplesWrote=0;
 			}
-			System.out.println("Pass " + numPasses + " Finished");
+//			System.out.println("Pass " + numPasses + " Finished");
 			System.out.println("Disk I/O at pass " + numPasses + ": " + numIO);
 			numFilesToRead = writerIndex;
 			numPasses++;
 		}
-		System.out.println("Disk I/O at Merge phase (PASS 2): " + numIO);
+		System.out.println("Disk I/O at Merge phase: " + numIO);
 		totalIO += numIO;
 
 		return outputPath + outputFileName + "_pass_" + numPasses + "_0" + fileExtension;
