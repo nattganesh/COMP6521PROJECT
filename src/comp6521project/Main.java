@@ -4,11 +4,11 @@ import java.util.ArrayList;
 
 public class Main {
 
-//	public static String inputFileName = "HalfMillionData";
-	public static String inputFileName = "OneMillionData";
+	public static String inputFileName = "HalfMillionData";
+//	public static String inputFileName = "OneMillionData";
 
-//	public static String inputFileName2 = "HalfMillionData2";
-	public static String inputFileName2 = "OneMillionData2";
+	public static String inputFileName2 = "HalfMillionData2";
+//	public static String inputFileName2 = "OneMillionData2";
 
 	public static String outputFileName = "Output";
 	public static String fileExtension = ".txt";
@@ -45,7 +45,7 @@ public class Main {
 		System.out.println("Disk I/O at Read and Sort phase (PASS 1): " + numFilesandSortIO[1]);
 		System.out.println("Read and Sort phase (PASS 1) Execution Time: " + (sortEnd-sortStart)/1_000_000_000 + "s");
 
-		System.out.println("Total number of records in the resulting tables T1 and T2: " + Reader.totalNumberOfTuples);
+//		System.out.println("Total number of records in the resulting tables T1 and T2: " + Reader.totalNumberOfTuples);
 
 		long mergeStart = System.nanoTime();
 		
@@ -57,7 +57,7 @@ public class Main {
 		processTuples(mergedFile);
 		long processEnd = System.nanoTime();
 		
-		System.out.println("Process Data Execution Time: " + (processEnd-processStart)/1_000_000_000 + "s");
+//		System.out.println("Process Data Execution Time: " + (processEnd-processStart)/1_000_000_000 + "s");
 
 		System.out.println("Total number of disk I/Os performed to produce T: " + totalIO);
 		System.out.println("Total execution time to produce T: " + (processEnd-sortStart)/1_000_000_000 + "s");
@@ -112,22 +112,6 @@ public class Main {
 				}
 			}
 		}
-		
-//		if(inputFileName != inputFileName2) 
-//		{
-////			System.out.println("numFilesToRead: " + numFiles);
-//			inputFileName = inputFileName2; // To indicate we have acknowledge both files
-//			// If a second file exists
-//			r = new Reader(inputPath + inputFileName2 + fileExtension);
-//			readAndSort(r, countFiles, sortIO);
-//		}
-//		else 
-//		{
-//			System.out.println("Disk I/O at sort phase: " + sortIO);
-//			totalIO += sortIO;
-//		}
-//		numFilesCounts+= numFiles;
-//		System.out.println("numFilesToRead: " + numFilesCounts);
 		int[] ret = {countFiles, sortIO};
 		return ret;
 	}
@@ -218,11 +202,10 @@ public class Main {
 						reader.readBlock();
 						reader.resetCurrentTuples();
 						readIO++;
-						if(!reader.currentBlock.records.isEmpty()) {
-							numIO++;
-						}
+						numIO++;
 						if (reader.finishedReading && reader.currentBlock.records.isEmpty()){
 							readIO--;
+							numIO--;
 							readers.remove(reader);
 						}
 					}
@@ -239,9 +222,9 @@ public class Main {
 			numFilesToRead = writerIndex;
 			numPasses++;
 		}
-		System.out.println("ReadIO: "+readIO);
+//		System.out.println("ReadIO: "+readIO);
 //		System.out.println("Total number of records in the resulting tables T1 and T2: "+numTuplesWrote/numPasses);
-		System.out.println("Disk I/O at Merge phase (PASS 1): " + (numIO/numPasses));
+		System.out.println("Disk I/O at Merge phase (PASS 2): " + (numIO));
 		totalIO += numIO;
 		return outputPath + outputFileName + "_pass_" + numPasses + "_0" + fileExtension;
 	}
@@ -304,14 +287,12 @@ public class Main {
 			countBlocksInT++;
 			processIO++;
 		}
-		System.out.println("Total number of records in the resulting tables T1 and T2: " + countRecordsInT1andT2);
-		System.out.println("Total number of IO's in process phase: " + processIO); 
-		System.out.println("================================================================"); 
+//		System.out.println("Total number of records in the resulting tables T1 and T2: " + countRecordsInT1andT2);
+//		System.out.println("Total number of IO's in process phase: " + processIO); 
+//		System.out.println("================================================================"); 
 		System.out.println("Total number of records in the resulting table T: " + countRecordsInT);
 		System.out.println("Total number of blocks in the resulting table T: " + countBlocksInT); 
 		
 		totalIO += processIO;
-//		System.out.println("Total number of disk I/Os performed to produce T: " + countBlocksInT);
-//		System.out.println("Total execution time to produce T: " + countBlocksInT);
 	}
 }
